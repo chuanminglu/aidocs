@@ -35,6 +35,9 @@ loguru==0.7.2           # 日志系统
 # Word文档支持
 python-docx==0.8.11     # Word文档解析
 docx2txt==0.8           # 轻量级Word文本提取
+Pillow==10.1.0          # 图片处理
+lxml==4.9.3             # XML解析（增强Word解析）
+python-magic==0.4.27    # 文件类型检测
 
 # 开发工具
 pytest==7.4.3

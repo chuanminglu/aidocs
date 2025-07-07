@@ -16,6 +16,7 @@ from PyQt6.QtGui import QAction, QFont, QTextCursor, QKeySequence
 
 from src.gui.find_replace_dialog import FindReplaceDialog
 from src.gui.document_outline_navigator import DocumentOutlineNavigator
+from src.gui.widgets.word_enhanced_viewer import WordEnhancedViewer
 from src.core.ai_service import AIService
 from src.core.word_parser import WordDocumentParser, check_word_support
 from config.settings import Settings
@@ -140,6 +141,9 @@ class DocumentEditor(QWidget):
         self.word_parser = WordDocumentParser()
         self.word_support_available, self.word_support_message = check_word_support()
         
+        # Word增强查看器
+        self.word_enhanced_viewer = None
+        
         self.tabs: Dict[int, DocumentTab] = {}
         self.current_tab_id = 0
         self.find_dialog = None
@@ -229,6 +233,10 @@ class DocumentEditor(QWidget):
             self.word_mode_action.triggered.connect(self.toggle_word_mode)
             self.word_mode_action.setEnabled(False)  # 默认禁用，打开Word文档时启用
             self.toolbar.addAction(self.word_mode_action)
+            
+            self.word_enhanced_action = QAction("Word增强查看", self)
+            self.word_enhanced_action.triggered.connect(self.open_word_enhanced_features)
+            self.toolbar.addAction(self.word_enhanced_action)
             
             self.save_as_word_action = QAction("保存为Word", self)
             self.save_as_word_action.triggered.connect(self.save_as_word)
@@ -459,17 +467,52 @@ class DocumentEditor(QWidget):
             
             if is_word_file and self.word_support_available:
                 # 处理Word文档
-                result = self.word_parser.extract_structured_content(file_path)
-                if result.success:
-                    content = result.content
+                
+                # 首先尝试增强解析
+                enhanced_result = None
+                if self.word_parser.has_enhanced_features():
+                    enhanced_result = self.word_parser.parse_enhanced_document(file_path)
+                
+                if enhanced_result and enhanced_result.success:
+                    # 使用增强解析结果
+                    content = enhanced_result.markdown_content or enhanced_result.content
+                    
+                    # 显示增强功能信息
+                    info_parts = [
+                        f"已使用增强解析器处理Word文档: {Path(file_path).name}",
+                        f"📄 段落数量: {len(enhanced_result.paragraphs)}",
+                        f"📊 表格数量: {len(enhanced_result.tables)}",
+                        f"🖼️ 图片数量: {len(enhanced_result.images)}",
+                        f"🎨 样式数量: {len(enhanced_result.styles)}"
+                    ]
+                    
+                    if enhanced_result.tables:
+                        info_parts.append("✨ 检测到复杂表格，已保持格式")
+                    if enhanced_result.images:
+                        info_parts.append("✨ 检测到图片，已提取并转换")
+                    if enhanced_result.styles:
+                        info_parts.append("✨ 检测到样式信息，已保持格式")
+                    
+                    info_parts.append("\n提示: 可以使用'保存为Word'功能保存修改。")
+                    
                     QMessageBox.information(
                         self, 
-                        "Word文档", 
-                        f"已将Word文档转换为Markdown格式进行编辑。\n原始Word文档: {Path(file_path).name}\n\n提示: 可以使用'保存为Word'功能保存修改。"
+                        "增强Word解析", 
+                        "\n".join(info_parts)
                     )
                 else:
-                    QMessageBox.warning(self, "错误", f"无法读取Word文档: {result.error_message}")
-                    return
+                    # 回退到基础解析
+                    result = self.word_parser.extract_structured_content(file_path)
+                    if result.success:
+                        content = result.content
+                        QMessageBox.information(
+                            self, 
+                            "Word文档", 
+                            f"已将Word文档转换为Markdown格式进行编辑。\n原始Word文档: {Path(file_path).name}\n\n提示: 可以使用'保存为Word'功能保存修改。"
+                        )
+                    else:
+                        QMessageBox.warning(self, "错误", f"无法读取Word文档: {result.error_message}")
+                        return
             else:
                 # 处理普通文本文件
                 with open(file_path, 'r', encoding='utf-8') as f:
@@ -1064,3 +1107,66 @@ class DocumentEditor(QWidget):
             if self.tab_id_mapping.get(i) == tab_id:
                 self.tab_widget.setTabText(i, doc_tab.get_display_name())
                 break
+
+    def show_word_enhanced_viewer(self, file_path: Optional[str] = None):
+        """显示Word增强查看器"""
+        if not self.word_support_available:
+            QMessageBox.warning(self, "功能不可用", self.word_support_message)
+            return
+            
+        # 如果没有指定文件路径，使用当前文档
+        if not file_path:
+            current_tab_id = self.get_current_tab_id()
+            if current_tab_id is None:
+                QMessageBox.information(self, "提示", "请先打开一个Word文档")
+                return
+                
+            doc_tab = self.tabs[current_tab_id]
+            if not doc_tab.is_word_document:
+                QMessageBox.information(self, "提示", "当前文档不是Word文档")
+                return
+                
+            file_path = doc_tab.original_word_content
+            
+        if not file_path or not Path(file_path).exists():
+            QMessageBox.warning(self, "错误", "Word文档路径无效")
+            return
+            
+        # 创建或显示Word增强查看器
+        if self.word_enhanced_viewer is None:
+            self.word_enhanced_viewer = WordEnhancedViewer()
+            
+            # 连接信号
+            self.word_enhanced_viewer.content_changed.connect(self.on_word_content_changed)
+            self.word_enhanced_viewer.image_extracted.connect(self.on_word_image_extracted)
+            self.word_enhanced_viewer.table_exported.connect(self.on_word_table_exported)
+            self.word_enhanced_viewer.style_applied.connect(self.on_word_style_applied)
+            
+        # 加载文档
+        self.word_enhanced_viewer.load_document(file_path)
+        self.word_enhanced_viewer.show()
+        self.word_enhanced_viewer.raise_()
+        self.word_enhanced_viewer.activateWindow()
+        
+    def on_word_content_changed(self, content: str):
+        """Word内容改变事件"""
+        # 更新当前编辑器的内容
+        current_editor = self.get_current_text_edit()
+        if current_editor:
+            current_editor.setPlainText(content)
+            
+    def on_word_image_extracted(self, file_path: str):
+        """Word图片提取事件"""
+        self.status_label.setText(f"图片已保存: {Path(file_path).name}")
+        
+    def on_word_table_exported(self, table_name: str):
+        """Word表格导出事件"""
+        self.status_label.setText(f"表格已导出: {table_name}")
+        
+    def on_word_style_applied(self, style_name: str):
+        """Word样式应用事件"""
+        self.status_label.setText(f"样式已应用: {style_name}")
+        
+    def open_word_enhanced_features(self):
+        """打开Word增强功能界面"""
+        self.show_word_enhanced_viewer()

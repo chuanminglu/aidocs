@@ -10,6 +10,9 @@ Word文档解析器模块
 3. Word转Markdown转换
 4. Markdown转Word保存
 5. Word文档大纲结构提取
+6. 图片处理和提取（新增）
+7. 复杂表格支持（新增）
+8. 样式保持（新增）
 """
 
 import os
@@ -31,11 +34,13 @@ except ImportError:
     # 创建占位符类型，避免类型错误
     DocxDocument = Any
 
-# 其他依赖
-import zipfile
-import xml.etree.ElementTree as ET
-import tempfile
-import shutil
+# 增强Word解析器
+try:
+    from .enhanced_word_parser import EnhancedWordParser
+    ENHANCED_PARSER_AVAILABLE = True
+except ImportError:
+    ENHANCED_PARSER_AVAILABLE = False
+    logging.warning("增强Word解析器不可用")
 
 @dataclass
 class OutlineItem:
@@ -712,6 +717,42 @@ class WordDocumentParser:
             return 3
         else:
             return 3
+    
+    def parse_enhanced_document(self, file_path: str, extract_images: bool = True, preserve_styles: bool = True) -> Optional[Any]:
+        """使用增强解析器解析Word文档
+        
+        Args:
+            file_path: Word文档路径
+            extract_images: 是否提取图片
+            preserve_styles: 是否保持样式
+            
+        Returns:
+            EnhancedWordParseResult: 增强解析结果，如果不可用则返回None
+        """
+        if not ENHANCED_PARSER_AVAILABLE:
+            self.logger.warning("增强Word解析器不可用，使用基础解析器")
+            return None
+        
+        try:
+            with EnhancedWordParser(extract_images=extract_images, preserve_styles=preserve_styles) as parser:
+                return parser.parse_document(file_path)
+        except Exception as e:
+            self.logger.error(f"增强解析失败: {e}")
+            return None
+    
+    def has_enhanced_features(self) -> bool:
+        """检查是否支持增强功能"""
+        return ENHANCED_PARSER_AVAILABLE
+    
+    def get_supported_features(self) -> Dict[str, bool]:
+        """获取支持的功能列表"""
+        return {
+            "basic_parsing": WORD_SUPPORT_AVAILABLE,
+            "enhanced_parsing": ENHANCED_PARSER_AVAILABLE,
+            "image_extraction": ENHANCED_PARSER_AVAILABLE,
+            "complex_tables": ENHANCED_PARSER_AVAILABLE,
+            "style_preservation": ENHANCED_PARSER_AVAILABLE
+        }
 # Word功能可用性检查函数
 def check_word_support() -> Tuple[bool, str]:
     """检查Word功能支持状态

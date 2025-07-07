@@ -294,6 +294,11 @@ class MainWindow(QMainWindow):
         
         word_menu.addSeparator()
         
+        # 增强功能菜单项
+        enhanced_features_action = QAction('查看增强功能', self)
+        enhanced_features_action.triggered.connect(self.show_word_enhanced_features)
+        word_menu.addAction(enhanced_features_action)
+        
         test_word_action = QAction('测试Word功能', self)
         test_word_action.triggered.connect(self.test_word_features)
         word_menu.addAction(test_word_action)
@@ -1349,6 +1354,99 @@ AI文档管理系统是一个基于PyQt6的智能文档管理平台，集成了W
         
         # 更新状态栏
         self.status_bar.showMessage("演示内容已加载 - 所有功能已就绪")
+    
+    def show_word_enhanced_features(self):
+        """显示Word增强功能信息"""
+        try:
+            # 获取功能支持状态
+            features = self.word_parser.get_supported_features()
+            has_enhanced = self.word_parser.has_enhanced_features()
+            
+            # 构建信息内容
+            info_lines = [
+                "🚀 AI文档管理系统 - Word增强功能",
+                "=" * 50,
+                "",
+                "📋 基础功能状态:",
+                f"  ✅ Word文档解析: {'支持' if features.get('basic_parsing') else '不支持'}",
+                "",
+                "🌟 增强功能状态:",
+                f"  {'✅' if has_enhanced else '❌'} 增强解析器: {'可用' if has_enhanced else '不可用'}",
+                f"  {'✅' if features.get('image_extraction') else '❌'} 图片提取: {'支持' if features.get('image_extraction') else '不支持'}",
+                f"  {'✅' if features.get('complex_tables') else '❌'} 复杂表格: {'支持' if features.get('complex_tables') else '不支持'}",
+                f"  {'✅' if features.get('style_preservation') else '❌'} 样式保持: {'支持' if features.get('style_preservation') else '不支持'}",
+                "",
+                "🎯 增强功能详情:",
+                ""
+            ]
+            
+            if has_enhanced:
+                info_lines.extend([
+                    "📷 图片处理功能:",
+                    "  • 自动提取Word文档中的图片",
+                    "  • 支持PNG、JPEG、GIF等格式",
+                    "  • 转换为Base64格式用于Markdown显示",
+                    "  • 保存图片到临时目录供查看",
+                    "",
+                    "📊 复杂表格支持:",
+                    "  • 保持表格结构和格式",
+                    "  • 支持合并单元格的处理",
+                    "  • 识别表头和数据行",
+                    "  • 保持单元格对齐方式",
+                    "  • 提取表格背景色和文字颜色",
+                    "",
+                    "🎨 样式保持功能:",
+                    "  • 识别段落样式信息",
+                    "  • 保持字体、字号、颜色",
+                    "  • 处理粗体、斜体、下划线",
+                    "  • 保持段落对齐和缩进",
+                    "  • 转换为对应的Markdown格式",
+                    "",
+                    "✨ 智能解析特性:",
+                    "  • 多级标题层次识别",
+                    "  • 项目符号和编号列表",
+                    "  • 引用和特殊段落样式",
+                    "  • 文档元数据提取",
+                    "  • 结构化内容组织"
+                ])
+            else:
+                info_lines.extend([
+                    "⚠️ 增强功能不可用",
+                    "",
+                    "可能的原因:",
+                    "  • 缺少必要的依赖库 (Pillow, lxml)",
+                    "  • 增强解析器模块加载失败",
+                    "",
+                    "解决方案:",
+                    "  1. 确保已安装所有依赖: pip install Pillow lxml",
+                    "  2. 重启应用程序",
+                    "  3. 检查enhanced_word_parser.py是否存在"
+                ])
+            
+            info_lines.extend([
+                "",
+                "📖 使用建议:",
+                "  • 优先使用.docx格式的Word文档",
+                "  • 使用标准的内置样式（标题1、标题2等）",
+                "  • 避免过于复杂的嵌套表格",
+                "  • 图片建议使用常见格式（PNG、JPEG）",
+                "",
+                "💡 提示: 通过菜单'Word处理 → 测试Word功能'可以运行完整测试"
+            ])
+            
+            # 显示信息对话框
+            QMessageBox.information(
+                self,
+                "Word增强功能",
+                "\n".join(info_lines)
+            )
+            
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "错误",
+                f"获取增强功能信息失败: {str(e)}"
+            )
 
 
 def main():
