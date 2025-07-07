@@ -1,0 +1,45 @@
+{
+  "name": "aidocs",
+  "version": "1.0.0",
+  "description": "AI文档管理系统 - 智能化个人文档管理平台",
+  "main": "src/backend/app.py",
+  "scripts": {
+    "start": "python src/backend/app.py",
+    "dev": "python src/backend/app.py --debug",
+    "test": "python -m pytest tests/",
+    "install": "pip install -r requirements.txt",
+    "build": "python setup.py build",
+    "clean": "python setup.py clean"
+  },
+  "keywords": [
+    "document-management",
+    "ai",
+    "knowledge-base",
+    "search",
+    "template",
+    "markdown"
+  ],
+  "author": "AI文档管理系统开发团队",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/aidocs.git"
+  },
+  "dependencies": {
+    "flask": "^2.3.0",
+    "flask-cors": "^4.0.0",
+    "sqlite3": "built-in",
+    "markdown": "^3.4.0",
+    "whoosh": "^2.7.0",
+    "python-dotenv": "^1.0.0"
+  },
+  "devDependencies": {
+    "pytest": "^7.4.0",
+    "pytest-cov": "^4.1.0",
+    "black": "^23.7.0",
+    "flake8": "^6.0.0"
+  },
+  "engines": {
+    "python": ">=3.8"
+  }
+}

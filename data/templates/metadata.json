@@ -1,0 +1,195 @@
+{
+  "template_daily_report_20250704": {
+    "id": "template_daily_report_20250704",
+    "name": "日报模板",
+    "description": "用于记录每日工作进展和思考的模板",
+    "category": "工作模板",
+    "subcategory": "日常记录",
+    "tags": [
+      "日报",
+      "工作",
+      "记录"
+    ],
+    "author": "system",
+    "version": "1.0.0",
+    "created_at": "2025-07-04T10:00:00",
+    "updated_at": "2025-07-04T10:00:00",
+    "usage_count": 1,
+    "rating": 0.0,
+    "file_path": "工作模板/日报模板.md",
+    "variables": [
+      {
+        "name": "date",
+        "type": "date",
+        "default": "date",
+        "description": "报告日期"
+      },
+      {
+        "name": "author",
+        "type": "text",
+        "default": "",
+        "description": "报告作者"
+      },
+      {
+        "name": "weather",
+        "type": "text",
+        "default": "",
+        "description": "天气状况"
+      },
+      {
+        "name": "mood",
+        "type": "select",
+        "default": "正常",
+        "description": "心情状态",
+        "options": [
+          "开心",
+          "正常",
+          "疲惫",
+          "焦虑"
+        ]
+      }
+    ]
+  },
+  "template_tech_research_20250704": {
+    "id": "template_tech_research_20250704",
+    "name": "技术研究笔记模板",
+    "description": "用于记录技术研究过程和成果的模板",
+    "category": "研究模板",
+    "subcategory": "技术研究",
+    "tags": [
+      "技术",
+      "研究",
+      "笔记"
+    ],
+    "author": "system",
+    "version": "1.0.0",
+    "created_at": "2025-07-04T10:00:00",
+    "updated_at": "2025-07-04T10:00:00",
+    "usage_count": 0,
+    "rating": 0.0,
+    "file_path": "研究模板/技术研究笔记模板.md",
+    "variables": [
+      {
+        "name": "topic",
+        "type": "text",
+        "default": "",
+        "description": "研究主题"
+      },
+      {
+        "name": "date",
+        "type": "date",
+        "default": "date",
+        "description": "研究日期"
+      },
+      {
+        "name": "researcher",
+        "type": "text",
+        "default": "",
+        "description": "研究者"
+      },
+      {
+        "name": "priority",
+        "type": "select",
+        "default": "中",
+        "description": "优先级",
+        "options": [
+          "高",
+          "中",
+          "低"
+        ]
+      }
+    ]
+  },
+  "template_project_review_20250704": {
+    "id": "template_project_review_20250704",
+    "name": "项目复盘模板",
+    "description": "用于项目复盘和总结的模板",
+    "category": "项目模板",
+    "subcategory": "项目管理",
+    "tags": [
+      "项目",
+      "复盘",
+      "总结"
+    ],
+    "author": "system",
+    "version": "1.0.0",
+    "created_at": "2025-07-04T10:00:00",
+    "updated_at": "2025-07-04T10:00:00",
+    "usage_count": 2,
+    "rating": 0.0,
+    "file_path": "项目模板/项目复盘模板.md",
+    "variables": [
+      {
+        "name": "project_name",
+        "type": "text",
+        "default": "",
+        "description": "项目名称"
+      },
+      {
+        "name": "review_date",
+        "type": "date",
+        "default": "date",
+        "description": "复盘日期"
+      },
+      {
+        "name": "project_manager",
+        "type": "text",
+        "default": "",
+        "description": "项目经理"
+      },
+      {
+        "name": "status",
+        "type": "select",
+        "default": "已完成",
+        "description": "项目状态",
+        "options": [
+          "已完成",
+          "进行中",
+          "已暂停",
+          "已取消"
+        ]
+      }
+    ]
+  },
+  "template_技术研究笔记模板_20250704_135435": {
+    "id": "template_技术研究笔记模板_20250704_135435",
+    "name": "技术研究笔记模板",
+    "description": "从 技术研究笔记模板.md 导入",
+    "category": "导入",
+    "subcategory": "导入",
+    "tags": [],
+    "author": "user",
+    "version": "1.0.0",
+    "created_at": "2025-07-04T13:54:35.677522",
+    "updated_at": "2025-07-04T13:54:35.677522",
+    "usage_count": 0,
+    "rating": 0.0,
+    "file_path": "导入\\技术研究笔记模板.md",
+    "variables": [
+      {
+        "name": "researcher",
+        "type": "text",
+        "default": "",
+        "description": "变量 researcher"
+      },
+      {
+        "name": "priority",
+        "type": "select",
+        "default": "",
+        "description": "变量 priority"
+      },
+      {
+        "name": "date",
+        "type": "date",
+        "default": "",
+        "description": "变量 date"
+      },
+      {
+        "name": "topic",
+        "type": "text",
+        "default": "",
+        "description": "变量 topic"
+      }
+    ]
+  }
+}
