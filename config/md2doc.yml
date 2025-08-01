@@ -1,0 +1,46 @@
+# MD2DOC 配置文件示例
+# 支持YAML和JSON格式
+
+# 文档样式配置
+document:
+  font_name: "微软雅黑"           # 默认字体
+  font_size: 12                  # 字体大小
+  line_spacing: 1.15             # 行间距
+  margin:                        # 页边距(厘米)
+    top: 2.54
+    bottom: 2.54
+    left: 3.17
+    right: 3.17
+
+# 图表渲染配置
+charts:
+  mermaid:
+    theme: "default"             # 主题: default, dark, forest, neutral
+    background: "white"          # 背景色
+    width: 800                   # 宽度
+    height: 600                  # 高度
+    cli_path: "mmdc"            # Mermaid CLI路径
+  plantuml:
+    server_url: "http://www.plantuml.com/plantuml"  # PlantUML服务器
+    format: "png"                # 输出格式
+
+# 输出配置
+output:
+  format: "docx"                 # 输出格式
+  preserve_styles: true          # 保留样式
+  image_dpi: 300                # 图片DPI
+  image_quality: "high"         # 图片质量
+
+# 日志配置
+logging:
+  level: "INFO"                  # 日志级别
+  file: "logs/md2doc.log"       # 日志文件
+  console: true                  # 控制台输出
+
+# 环境变量支持:
+# MD2DOC_FONT_NAME          - 覆盖 document.font_name
+# MD2DOC_FONT_SIZE          - 覆盖 document.font_size  
+# MD2DOC_MERMAID_THEME      - 覆盖 charts.mermaid.theme
+# MD2DOC_MERMAID_CLI        - 覆盖 charts.mermaid.cli_path
+# MD2DOC_OUTPUT_DPI         - 覆盖 output.image_dpi
+# MD2DOC_LOG_LEVEL          - 覆盖 logging.level

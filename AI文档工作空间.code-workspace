@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../AI文档s"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"powershell.cwd": "aidocs",
+		"liveServer.settings.multiRootWorkspaceName": "AI文档s"
+	}
+}
