@@ -150,34 +150,79 @@ class PlantUMLEngine(BaseRenderEngine):
             
             for server in self.online_servers:
                 try:
-                    # 尝试多种高质量URL格式
+                    # 构建多种高质量PNG URL格式
                     urls_to_try = []
                     
+                    # 基于测试结果优化URL构建策略
                     if format_suffix == "png":
-                        # 方法1: 使用高DPI路径
-                        urls_to_try.append(f"{server}/png/{encoded_code}?dpi=200")
-                        # 方法2: 使用dpng格式（高DPI PNG）
-                        urls_to_try.append(f"{server}/dpng/{encoded_code}")
-                        # 方法3: 备用普通PNG
-                        urls_to_try.append(f"{server}/png/{encoded_code}")
+                        # 优先使用最稳定的dpng格式（测试证明最可靠）
+                        urls_to_try.append({
+                            "url": f"{server}/dpng/{encoded_code}",
+                            "format": "png", 
+                            "description": "高质量PNG (dpng格式)"
+                        })
+                        
+                        # 尝试更高的DPI设置（基于Context7研究和测试）
+                        for dpi in [300, 400, 200]:  # 优先尝试更高DPI
+                            urls_to_try.append({
+                                "url": f"{server}/png/{encoded_code}?dpi={dpi}",
+                                "format": "png",
+                                "description": f"高DPI PNG ({dpi} DPI)"
+                            })
+                        
+                        # 标准PNG作为最后备选
+                        urls_to_try.append({
+                            "url": f"{server}/png/{encoded_code}",
+                            "format": "png",
+                            "description": "标准PNG"
+                        })
                     else:
                         # 其他格式保持原样
-                        urls_to_try.append(f"{server}/{format_suffix}/{encoded_code}")
+                        urls_to_try.append({
+                            "url": f"{server}/{format_suffix}/{encoded_code}",
+                            "format": format_suffix,
+                            "description": f"标准{format_suffix.upper()}"
+                        })
                     
                     # 依次尝试不同的URL格式
                     response = None
                     successful_url = None
+                    used_format = None
                     
-                    for url in urls_to_try:
+                    for url_info in urls_to_try:
                         try:
-                            self.logger.info(f"尝试在线渲染PlantUML: {url}")
-                            response = requests.get(url, timeout=30)
-                            response.raise_for_status()
+                            url = url_info["url"]
+                            format_type = url_info["format"]
+                            description = url_info["description"]
                             
-                            # 检查响应内容
-                            if len(response.content) >= 100:  # 有效响应
-                                successful_url = url
+                            self.logger.info(f"尝试在线渲染PlantUML: {description} - {url}")
+                            
+                            # 增加重试机制和更长的超时时间
+                            max_retries = 2
+                            for retry in range(max_retries):
+                                try:
+                                    response = requests.get(url, timeout=45)  # 增加超时时间
+                                    response.raise_for_status()
+                                    
+                                    # 检查响应内容
+                                    if len(response.content) >= 100:  # 有效响应
+                                        successful_url = url
+                                        used_format = format_type
+                                        self.logger.info(f"成功使用格式: {description}")
+                                        break
+                                    else:
+                                        self.logger.warning(f"响应内容太小: {len(response.content)} bytes")
+                                        
+                                except requests.exceptions.HTTPError as http_err:
+                                    if retry < max_retries - 1:
+                                        self.logger.warning(f"HTTP错误 (重试 {retry+1}/{max_retries}): {http_err}")
+                                        continue
+                                    else:
+                                        raise http_err
+                                        
+                            if successful_url:
                                 break
+                                
                         except Exception as url_error:
                             self.logger.debug(f"URL {url} 失败: {url_error}")
                             continue
@@ -185,29 +230,34 @@ class PlantUMLEngine(BaseRenderEngine):
                     if response is None or successful_url is None:
                         continue  # 尝试下一个服务器
                         
-                    self.logger.info(f"成功使用高DPI URL: {successful_url}")
+                    self.logger.info(f"成功使用格式: {used_format} - {successful_url}")
                         
-                    # 保存原始图片到临时文件
-                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                    # PNG格式：直接保存
+                    file_suffix = '.png' if used_format == 'png' else f'.{used_format}'
+                    with tempfile.NamedTemporaryFile(suffix=file_suffix, delete=False) as temp_file:
                         temp_file.write(response.content)
                         temp_path = Path(temp_file.name)
                     
                     try:
-                        # 优化图片
-                        optimized_path = self.image_processor.optimize_for_word(temp_path)
-                        if optimized_path != temp_path:
-                            # 移动优化后的图片到目标位置
-                            optimized_path.rename(output_path)
-                            temp_path.unlink()  # 清理原始临时文件
+                        # 优化图片（仅对PNG格式）
+                        if used_format == 'png':
+                            optimized_path = self.image_processor.optimize_for_word(temp_path)
+                            if optimized_path != temp_path:
+                                # 移动优化后的图片到目标位置
+                                optimized_path.rename(output_path)
+                                temp_path.unlink()  # 清理原始临时文件
+                            else:
+                                # 如果没有优化，直接移动原文件
+                                temp_path.rename(output_path)
                         else:
-                            # 如果没有优化，直接移动原文件
+                            # 其他格式直接移动
                             temp_path.rename(output_path)
                     finally:
                         # 确保清理临时文件
                         if temp_path.exists():
                             temp_path.unlink()
                         
-                    self.logger.info(f"PlantUML在线渲染成功: {output_path}")
+                    self.logger.info(f"PlantUML渲染成功 ({used_format}格式): {output_path}")
                     return True, None
                     
                 except requests.RequestException as e:
