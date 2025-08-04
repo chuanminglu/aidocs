@@ -21,6 +21,7 @@ import logging
 from .base import BaseRenderEngine
 from .chart_detector import ChartInfo, ChartType
 from ..utils.helpers import ensure_directory
+from ..utils.image_processor import ImageProcessor, create_default_processor
 
 
 class MermaidTheme(Enum):
@@ -98,6 +99,9 @@ class MermaidEngine(BaseRenderEngine):
         
         # 检查本地工具可用性
         self.local_available = self._check_local_tools()
+        
+        # 初始化图片处理器
+        self.image_processor = create_default_processor()
         
     def _update_config(self, config: Dict[str, Any]):
         """更新渲染配置
@@ -248,12 +252,24 @@ class MermaidEngine(BaseRenderEngine):
             if result.returncode != 0:
                 raise MermaidRenderError(f"本地渲染失败: {result.stderr}")
             
-            # 读取结果
+            # 处理渲染结果
             if output_path:
+                # 优化图片用于Word文档
+                optimized_path = self.image_processor.optimize_for_word(final_output)
+                if optimized_path != final_output:
+                    # 如果生成了优化版本，替换原文件
+                    final_output.unlink()
+                    optimized_path.rename(final_output)
                 return final_output
             else:
-                with open(final_output, 'rb') as f:
-                    return f.read()
+                # 优化图片并返回字节数据
+                optimized_path = self.image_processor.optimize_for_word(final_output)
+                with open(optimized_path, 'rb') as f:
+                    image_data = f.read()
+                # 清理优化后的临时文件
+                if optimized_path != final_output:
+                    optimized_path.unlink()
+                return image_data
         
         finally:
             # 清理临时文件
@@ -336,9 +352,9 @@ class MermaidEngine(BaseRenderEngine):
         # 添加参数
         params = {}
         if self.config.theme != MermaidTheme.DEFAULT:
-            params['theme'] = self.config.theme.value
+            params['theme'] = str(self.config.theme.value)  # 确保转换为字符串
         if self.config.background != "white":
-            params['bgColor'] = self.config.background
+            params['bgColor'] = str(self.config.background)  # 确保转换为字符串
         
         # 发送请求
         self.logger.debug(f"请求URL: {url}")
@@ -355,11 +371,48 @@ class MermaidEngine(BaseRenderEngine):
         
         if output_path:
             ensure_directory(output_path.parent)
-            with open(output_path, 'wb') as f:
-                f.write(image_data)
-            return output_path
+            # 先保存原始图片到临时文件
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_path = Path(temp_file.name)
+            
+            try:
+                # 优化图片
+                optimized_path = self.image_processor.optimize_for_word(temp_path)
+                if optimized_path != temp_path:
+                    # 移动优化后的图片到目标位置
+                    optimized_path.rename(output_path)
+                    temp_path.unlink()  # 清理原始临时文件
+                else:
+                    # 如果没有优化，直接移动原文件
+                    temp_path.rename(output_path)
+                
+                return output_path
+            finally:
+                # 确保清理临时文件
+                if temp_path.exists():
+                    temp_path.unlink()
         else:
-            return image_data
+            # 保存到临时文件并优化
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_path = Path(temp_file.name)
+            
+            try:
+                # 优化图片
+                optimized_path = self.image_processor.optimize_for_word(temp_path)
+                with open(optimized_path, 'rb') as f:
+                    optimized_data = f.read()
+                
+                # 清理临时文件
+                if optimized_path != temp_path:
+                    optimized_path.unlink()
+                
+                return optimized_data
+            finally:
+                # 确保清理临时文件
+                if temp_path.exists():
+                    temp_path.unlink()
     
     def get_supported_formats(self) -> list:
         """获取支持的输出格式

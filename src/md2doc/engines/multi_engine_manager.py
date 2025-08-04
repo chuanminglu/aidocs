@@ -1,11 +1,8 @@
-"""
-多渲染引擎管理器
+# -*- coding: utf-8 -*-
+"""多渲染引擎管理器
 
-统一管理多种图表渲染引擎，提供：
-- 自动引擎选择
-- 降级渲染策略
-- 统一错误处理
-- 网络状态检测
+统一管理多种图表渲染引擎，提供自动引擎选择、降级渲染策略、
+统一错误处理和网络状态检测功能。
 """
 
 import logging
@@ -112,6 +109,11 @@ class MultiRenderEngineManager:
         strategies = self.engines[chart_type]
         network_available = self._check_network_status()
         
+        return self._try_render_strategies(strategies, chart_info, output_path, network_available)
+    
+    def _try_render_strategies(self, strategies: List[RenderStrategy], chart_info: ChartInfo, 
+                              output_path: Optional[Path], network_available: bool) -> Tuple[bool, Optional[Path], Optional[str]]:
+        """尝试使用策略列表渲染"""
         last_error = None
         
         for strategy in strategies:
@@ -120,35 +122,55 @@ class MultiRenderEngineManager:
                 self.logger.debug(f"跳过需要网络的策略: {strategy.engine_class.__name__}")
                 continue
                 
-            try:
-                # 获取或创建引擎实例
-                engine = self._get_engine_instance(strategy)
+            success, rendered_path, error = self._try_single_strategy(strategy, chart_info, output_path)
+            
+            if success:
+                self.logger.info(f"渲染成功: {strategy.engine_class.__name__}")
+                return True, rendered_path, None
                 
-                if not engine.can_render(chart_info):
-                    continue
-                    
-                # 尝试渲染
-                success, rendered_path, error = engine.render(chart_info, output_path)
+            last_error = error
+            self.logger.warning(f"渲染失败 {strategy.engine_class.__name__}: {error}")
+            
+            if not strategy.fallback_on_failure:
+                break
                 
-                if success:
-                    self.logger.info(f"渲染成功: {strategy.engine_class.__name__}")
-                    return True, rendered_path, None
-                    
-                last_error = error
-                self.logger.warning(f"渲染失败 {strategy.engine_class.__name__}: {error}")
-                
-                if not strategy.fallback_on_failure:
-                    break
-                    
-            except Exception as e:
-                error_msg = f"引擎异常 {strategy.engine_class.__name__}: {e}"
-                self.logger.error(error_msg)
-                last_error = error_msg
-                
-                if not strategy.fallback_on_failure:
-                    break
-                    
         return False, None, last_error or "所有渲染策略都失败了"
+    
+    def _try_single_strategy(self, strategy: RenderStrategy, chart_info: ChartInfo, 
+                            output_path: Optional[Path]) -> Tuple[bool, Optional[Path], Optional[str]]:
+        """尝试单个策略"""
+        try:
+            # 获取或创建引擎实例
+            engine = self._get_engine_instance(strategy)
+            
+            if not engine.can_render(chart_info):
+                return False, None, "引擎不支持该图表类型"
+                
+            # 尝试渲染 - 处理不同的返回类型
+            result = engine.render(chart_info, output_path)
+            
+            # 根据引擎类型处理不同的返回格式
+            if isinstance(result, tuple) and len(result) == 3:
+                # PlantUML引擎格式: (bool, Optional[Path], Optional[str])
+                return result
+            elif isinstance(result, (bytes, Path)):
+                # Mermaid引擎格式: Union[bytes, Path]
+                if isinstance(result, Path):
+                    return True, result, None
+                else:
+                    # 字节数据，需要保存到文件
+                    if output_path:
+                        output_path.write_bytes(result)
+                        return True, output_path, None
+                    else:
+                        return False, None, "字节数据需要指定输出路径"
+            else:
+                return False, None, f"未知的渲染结果格式: {type(result)}"
+                
+        except Exception as e:
+            error_msg = f"引擎异常 {strategy.engine_class.__name__}: {e}"
+            self.logger.error(error_msg)
+            return False, None, error_msg
         
     def _get_engine_instance(self, strategy: RenderStrategy) -> BaseRenderEngine:
         """获取引擎实例
@@ -163,36 +185,46 @@ class MultiRenderEngineManager:
         engine_key = f"{strategy.engine_class.__name__}_{hash(str(strategy.config))}"
         
         if engine_key not in self._engine_instances:
-            # 创建新实例
-            try:
-                if strategy.engine_class == MermaidEngine:
-                    # MermaidEngine接受字典配置
-                    self._engine_instances[engine_key] = MermaidEngine(strategy.config)
-                elif strategy.engine_class == PlantUMLEngine:
-                    # PlantUMLEngine需要PlantUMLRenderConfig
-                    if isinstance(strategy.config, dict):
-                        config = PlantUMLRenderConfig()
-                        # 应用配置覆盖
-                        for key, value in strategy.config.items():
-                            if hasattr(config, key):
-                                setattr(config, key, value)
-                    else:
-                        config = strategy.config
-                    self._engine_instances[engine_key] = PlantUMLEngine(config)
-                else:
-                    # 其他引擎类型
-                    self._engine_instances[engine_key] = strategy.engine_class()
-            except Exception as e:
-                self.logger.error(f"创建引擎实例失败 {strategy.engine_class.__name__}: {e}")
-                # 使用默认配置创建
-                if strategy.engine_class == MermaidEngine:
-                    self._engine_instances[engine_key] = MermaidEngine()
-                elif strategy.engine_class == PlantUMLEngine:
-                    self._engine_instances[engine_key] = PlantUMLEngine()
-                else:
-                    self._engine_instances[engine_key] = strategy.engine_class()
+            self._engine_instances[engine_key] = self._create_engine_instance(strategy)
                 
         return self._engine_instances[engine_key]
+    
+    def _create_engine_instance(self, strategy: RenderStrategy) -> BaseRenderEngine:
+        """创建引擎实例"""
+        try:
+            return self._try_create_engine(strategy)
+        except Exception as e:
+            self.logger.error(f"创建引擎实例失败 {strategy.engine_class.__name__}: {e}")
+            return self._create_default_engine(strategy)
+    
+    def _try_create_engine(self, strategy: RenderStrategy) -> BaseRenderEngine:
+        """尝试创建引擎实例"""
+        if strategy.engine_class == MermaidEngine:
+            return MermaidEngine(strategy.config)
+        elif strategy.engine_class == PlantUMLEngine:
+            config = self._prepare_plantuml_config(strategy.config)
+            return PlantUMLEngine(config)
+        else:
+            return strategy.engine_class()
+    
+    def _prepare_plantuml_config(self, config_dict: Optional[dict]) -> Optional['PlantUMLRenderConfig']:
+        """准备PlantUML配置"""
+        if isinstance(config_dict, dict):
+            config = PlantUMLRenderConfig()
+            for key, value in config_dict.items():
+                if hasattr(config, key):
+                    setattr(config, key, value)
+            return config
+        return config_dict
+    
+    def _create_default_engine(self, strategy: RenderStrategy) -> BaseRenderEngine:
+        """创建默认配置的引擎实例"""
+        if strategy.engine_class == MermaidEngine:
+            return MermaidEngine()
+        elif strategy.engine_class == PlantUMLEngine:
+            return PlantUMLEngine()
+        else:
+            return strategy.engine_class()
         
     def _check_network_status(self) -> bool:
         """检查网络状态

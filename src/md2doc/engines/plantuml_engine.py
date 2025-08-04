@@ -8,7 +8,6 @@ PlantUML渲染引擎
 - 错误处理和降级方案
 """
 
-import base64
 import zlib
 import requests
 import tempfile
@@ -22,6 +21,7 @@ import logging
 from .base import BaseRenderEngine
 from .chart_detector import ChartInfo, ChartType
 from ..utils.helpers import ensure_directory
+from ..utils.image_processor import create_default_processor
 
 
 class PlantUMLTheme(Enum):
@@ -77,6 +77,9 @@ class PlantUMLEngine(BaseRenderEngine):
         
         # 本地工具检测
         self.local_available = self._check_local_plantuml()
+        
+        # 初始化图片处理器
+        self.image_processor = create_default_processor()
         
     def can_render(self, chart_info: ChartInfo) -> bool:
         """检查是否可以渲染指定图表
@@ -142,24 +145,67 @@ class PlantUMLEngine(BaseRenderEngine):
             # 编码PlantUML代码
             encoded_code = self._encode_plantuml(plantuml_code)
             
-            # 构建URL
+            # 构建高质量URL（使用高DPI）
             format_suffix = self.config.output_format.value
             
             for server in self.online_servers:
                 try:
-                    url = f"{server}/{format_suffix}/{encoded_code}"
-                    self.logger.info(f"尝试在线渲染PlantUML: {server}")
+                    # 尝试多种高质量URL格式
+                    urls_to_try = []
                     
-                    response = requests.get(url, timeout=30)
-                    response.raise_for_status()
+                    if format_suffix == "png":
+                        # 方法1: 使用高DPI路径
+                        urls_to_try.append(f"{server}/png/{encoded_code}?dpi=200")
+                        # 方法2: 使用dpng格式（高DPI PNG）
+                        urls_to_try.append(f"{server}/dpng/{encoded_code}")
+                        # 方法3: 备用普通PNG
+                        urls_to_try.append(f"{server}/png/{encoded_code}")
+                    else:
+                        # 其他格式保持原样
+                        urls_to_try.append(f"{server}/{format_suffix}/{encoded_code}")
                     
-                    # 检查响应内容
-                    if len(response.content) < 100:  # 可能是错误响应
-                        continue
+                    # 依次尝试不同的URL格式
+                    response = None
+                    successful_url = None
+                    
+                    for url in urls_to_try:
+                        try:
+                            self.logger.info(f"尝试在线渲染PlantUML: {url}")
+                            response = requests.get(url, timeout=30)
+                            response.raise_for_status()
+                            
+                            # 检查响应内容
+                            if len(response.content) >= 100:  # 有效响应
+                                successful_url = url
+                                break
+                        except Exception as url_error:
+                            self.logger.debug(f"URL {url} 失败: {url_error}")
+                            continue
+                    
+                    if response is None or successful_url is None:
+                        continue  # 尝试下一个服务器
                         
-                    # 保存图片
-                    with open(output_path, 'wb') as f:
-                        f.write(response.content)
+                    self.logger.info(f"成功使用高DPI URL: {successful_url}")
+                        
+                    # 保存原始图片到临时文件
+                    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                        temp_file.write(response.content)
+                        temp_path = Path(temp_file.name)
+                    
+                    try:
+                        # 优化图片
+                        optimized_path = self.image_processor.optimize_for_word(temp_path)
+                        if optimized_path != temp_path:
+                            # 移动优化后的图片到目标位置
+                            optimized_path.rename(output_path)
+                            temp_path.unlink()  # 清理原始临时文件
+                        else:
+                            # 如果没有优化，直接移动原文件
+                            temp_path.rename(output_path)
+                    finally:
+                        # 确保清理临时文件
+                        if temp_path.exists():
+                            temp_path.unlink()
                         
                     self.logger.info(f"PlantUML在线渲染成功: {output_path}")
                     return True, None
@@ -232,17 +278,159 @@ class PlantUMLEngine(BaseRenderEngine):
         Returns:
             编码后的字符串
         """
-        # PlantUML编码算法
-        # 1. 压缩
-        compressed = zlib.compress(plantuml_code.encode('utf-8'))
+        try:
+            # 确保代码有正确的开始和结束标记
+            code = plantuml_code.strip()
+            if not code.startswith('@start'):
+                code = '@startuml\n' + code + '\n@enduml'
+            
+            # 使用官方PlantUML编码方法
+            encoded = self._plantuml_encode_official(code)
+            
+            # 优先使用原始代码，不进行简化
+            # 只有在编码极长(>5000字符)且在线服务无法处理时才考虑简化
+            if len(encoded) > 5000:  # 大幅提高阈值，优先保持原始图表
+                self.logger.warning(f"PlantUML编码较长({len(encoded)}字符)，但将尝试使用原始代码")
+                # 注释掉自动简化逻辑，保持原始图表
+                # simplified_code = self._simplify_plantuml_content(code)
+                # encoded = self._plantuml_encode_official(simplified_code)
+                # self.logger.info(f"简化后编码长度: {len(encoded)}字符")
+            
+            self.logger.info(f"PlantUML编码完成: {len(code)}字符 -> {len(encoded)}字符")
+            return encoded
+            
+        except Exception as e:
+            self.logger.error(f"PlantUML编码失败: {e}")
+            # 降级到最简单的图表
+            return self._get_fallback_encoding()
+    
+    def _plantuml_encode_official(self, text: str) -> str:
+        """官方PlantUML编码方法
         
-        # 2. Base64编码
-        encoded = base64.b64encode(compressed).decode('ascii')
+        Args:
+            text: PlantUML源码
+            
+        Returns:
+            编码后的字符串
+        """
+        # 标准PlantUML编码表
+        plantuml_alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_'
         
-        # 3. URL安全转换
-        encoded = encoded.replace('+', '-').replace('/', '_')
+        # 压缩并移除zlib头尾
+        compressed = zlib.compress(text.encode('utf-8'))[2:-4]
         
-        return encoded
+        # 转换为PlantUML的base64变体
+        result = ""
+        for i in range(0, len(compressed), 3):
+            chunk = compressed[i:i+3]
+            
+            if len(chunk) == 3:
+                val = (chunk[0] << 16) + (chunk[1] << 8) + chunk[2]
+                result += plantuml_alphabet[(val >> 18) & 0x3F]
+                result += plantuml_alphabet[(val >> 12) & 0x3F] 
+                result += plantuml_alphabet[(val >> 6) & 0x3F]
+                result += plantuml_alphabet[val & 0x3F]
+            elif len(chunk) == 2:
+                val = (chunk[0] << 16) + (chunk[1] << 8)
+                result += plantuml_alphabet[(val >> 18) & 0x3F]
+                result += plantuml_alphabet[(val >> 12) & 0x3F]
+                result += plantuml_alphabet[(val >> 6) & 0x3F]
+            elif len(chunk) == 1:
+                val = chunk[0] << 16
+                result += plantuml_alphabet[(val >> 18) & 0x3F]
+                result += plantuml_alphabet[(val >> 12) & 0x3F]
+        
+        return result
+    
+    def _simplify_plantuml_content(self, code: str) -> str:
+        """简化PlantUML内容，移除复杂元素
+        
+        Args:
+            code: 原始PlantUML代码
+            
+        Returns:
+            简化后的代码
+        """
+        try:
+            lines = code.split('\n')
+            
+            # 检测图表类型和主要结构
+            has_activity = any('start' in line or 'stop' in line or ':' in line.strip() for line in lines)
+            has_sequence = any('->' in line for line in lines)
+            has_class = any('class' in line for line in lines)
+            
+            # 如果是活动图，创建简化的活动图
+            if has_activity:
+                return """@startuml
+title 流程图
+start
+:需求分析;
+:系统设计;
+:开发实现;
+:测试验证;
+:部署上线;
+stop
+@enduml"""
+            
+            # 如果是时序图，创建简化的时序图
+            elif has_sequence:
+                return """@startuml
+title 时序图
+用户 -> 系统: 请求
+系统 -> 数据库: 查询
+数据库 -> 系统: 返回结果
+系统 -> 用户: 响应
+@enduml"""
+            
+            # 如果是类图，创建简化的类图
+            elif has_class:
+                return """@startuml
+title 类图
+class 用户 {
+  +登录()
+  +操作()
+}
+class 系统 {
+  +处理()
+  +响应()
+}
+用户 --> 系统
+@enduml"""
+            
+            # 默认创建最简单的流程图
+            else:
+                return """@startuml
+title 流程图
+start
+:开始;
+:处理;
+:结束;
+stop
+@enduml"""
+                
+        except Exception as e:
+            self.logger.warning(f"PlantUML内容简化失败: {e}")
+            # 返回最基本的图表
+            return """@startuml
+start
+:流程;
+stop
+@enduml"""
+    
+    def _get_fallback_encoding(self) -> str:
+        """获取降级编码（最简单的图表）
+        
+        Returns:
+            降级编码字符串
+        """
+        fallback_code = """@startuml
+Alice -> Bob: Hello
+Bob -> Alice: Hi
+@enduml"""
+        try:
+            return self._plantuml_encode_official(fallback_code)
+        except Exception:
+            return "SyfFKj2rKt3CoKnELR1Io4ZDoSa70000"  # 硬编码的安全降级
         
     def _check_local_plantuml(self) -> bool:
         """检查本地PlantUML工具是否可用
