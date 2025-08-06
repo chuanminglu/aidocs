@@ -22,6 +22,7 @@ from .base import BaseRenderEngine
 from .chart_detector import ChartInfo, ChartType
 from ..utils.helpers import ensure_directory
 from ..utils.image_processor import ImageProcessor, create_default_processor
+from ..utils.mermaid_cleaner import MermaidCodeCleaner
 
 
 class MermaidTheme(Enum):
@@ -94,11 +95,15 @@ class MermaidEngine(BaseRenderEngine):
         # 在线渲染服务配置
         self.online_services = {
             'mermaid_ink': 'https://mermaid.ink/img/',
+            'kroki_io': 'https://kroki.io/mermaid/png/',
             'mermaid_live': 'https://mermaid-js.github.io/mermaid-live-editor/edit'
         }
         
         # 检查本地工具可用性
         self.local_available = self._check_local_tools()
+        
+        # 初始化代码清理器
+        self.code_cleaner = MermaidCodeCleaner()
         
         # 初始化图片处理器
         self.image_processor = create_default_processor()
@@ -184,6 +189,19 @@ class MermaidEngine(BaseRenderEngine):
             raise MermaidRenderError(f"无法渲染非Mermaid图表: {chart_info.chart_type}")
         
         self.logger.info(f"开始渲染Mermaid图表: {chart_info.subtype}")
+        
+        # 清理和修复Mermaid代码
+        original_content = chart_info.content
+        cleaned_content = self.code_cleaner.clean_and_fix(original_content)
+        
+        if cleaned_content != original_content:
+            self.logger.info("Mermaid代码已自动清理和修复")
+            # 创建新的图表信息对象
+            chart_info = ChartInfo(
+                chart_type=chart_info.chart_type,
+                content=cleaned_content,
+                language=chart_info.language
+            )
         
         try:
             # 优先使用本地渲染
@@ -323,14 +341,24 @@ class MermaidEngine(BaseRenderEngine):
         """
         self.logger.debug("使用在线服务渲染Mermaid图表")
         
-        # 首先尝试mermaid.ink
-        try:
-            return self._render_with_mermaid_ink(chart_info, output_path)
-        except Exception as e:
-            self.logger.warning(f"mermaid.ink渲染失败: {e}")
-            
-            # 可以在这里添加其他在线服务的尝试
-            raise MermaidRenderError("所有在线渲染服务都不可用")
+        # 按优先级尝试不同的在线服务
+        services_to_try = [
+            ('mermaid_ink', self._render_with_mermaid_ink),
+            ('kroki_io', self._render_with_kroki_io),
+        ]
+        
+        last_error = None
+        for service_name, render_func in services_to_try:
+            try:
+                self.logger.debug(f"尝试使用 {service_name} 渲染")
+                return render_func(chart_info, output_path)
+            except Exception as e:
+                self.logger.warning(f"{service_name}渲染失败: {e}")
+                last_error = e
+                continue
+        
+        # 所有服务都失败了
+        raise MermaidRenderError(f"所有在线渲染服务都不可用，最后错误: {last_error}")
     
     def _render_with_mermaid_ink(self, chart_info: ChartInfo, output_path: Optional[Path] = None) -> Union[bytes, Path]:
         """使用mermaid.ink渲染
@@ -365,6 +393,85 @@ class MermaidEngine(BaseRenderEngine):
         content_type = response.headers.get('content-type', '')
         if not content_type.startswith('image/'):
             raise MermaidRenderError(f"服务器返回非图片内容: {content_type}")
+        
+        # 处理结果
+        image_data = response.content
+        
+        if output_path:
+            ensure_directory(output_path.parent)
+            # 先保存原始图片到临时文件
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_path = Path(temp_file.name)
+            
+            try:
+                # 优化图片
+                optimized_path = self.image_processor.optimize_for_word(temp_path)
+                if optimized_path != temp_path:
+                    # 移动优化后的图片到目标位置
+                    optimized_path.rename(output_path)
+                    temp_path.unlink()  # 清理原始临时文件
+                else:
+                    # 如果没有优化，直接移动原文件
+                    temp_path.rename(output_path)
+                
+                return output_path
+            finally:
+                # 确保清理临时文件
+                if temp_path.exists():
+                    temp_path.unlink()
+        else:
+            # 保存到临时文件并优化
+            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as temp_file:
+                temp_file.write(image_data)
+                temp_path = Path(temp_file.name)
+            
+            try:
+                # 优化图片
+                optimized_path = self.image_processor.optimize_for_word(temp_path)
+                with open(optimized_path, 'rb') as f:
+                    optimized_data = f.read()
+                
+                # 清理临时文件
+                if optimized_path != temp_path:
+                    optimized_path.unlink()
+                
+                return optimized_data
+            finally:
+                # 确保清理临时文件
+                if temp_path.exists():
+                    temp_path.unlink()
+    
+    def _render_with_kroki_io(self, chart_info: ChartInfo, output_path: Optional[Path] = None) -> Union[bytes, Path]:
+        """使用kroki.io渲染
+        
+        Args:
+            chart_info: 图表信息
+            output_path: 输出路径
+            
+        Returns:
+            渲染结果
+        """
+        # kroki.io使用POST请求，避免URL长度限制
+        url = "https://kroki.io/mermaid/png"
+        
+        # 准备POST数据
+        data = chart_info.content.encode('utf-8')
+        
+        headers = {
+            'Content-Type': 'text/plain',
+            'Accept': 'image/png'
+        }
+        
+        # 发送POST请求
+        self.logger.debug(f"向kroki.io发送POST请求")
+        response = requests.post(url, data=data, headers=headers, timeout=self.online_timeout)
+        response.raise_for_status()
+        
+        # 检查响应类型
+        content_type = response.headers.get('content-type', '')
+        if not content_type.startswith('image/'):
+            raise MermaidRenderError(f"kroki.io返回非图片内容: {content_type}")
         
         # 处理结果
         image_data = response.content

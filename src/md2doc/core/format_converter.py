@@ -344,6 +344,59 @@ class FormatConverter:
         except Exception as e:
             self.logger.warning(f"设置默认字体失败: {e}")
     
+    def _clean_text(self, text: str) -> str:
+        """清理文本中的特殊字符和问题字符（保守版本 + Markdown语法清理）
+        
+        Args:
+            text: 需要清理的文本
+            
+        Returns:
+            清理后的文本
+        """
+        if not text:
+            return text
+            
+        # 移除常见的问题字符
+        cleaned_text = text
+        
+        # 清理Markdown语法标记（但保留内容，保留下划线）
+        # 只处理星号标记的粗体和斜体
+        cleaned_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned_text)  # **粗体**
+        cleaned_text = re.sub(r'\*([^*\n]+)\*', r'\1', cleaned_text)    # *斜体*
+        # 不处理下划线标记，保留原始下划线字符
+        
+        # 处理内联代码标记
+        cleaned_text = re.sub(r'`([^`]+)`', r'\1', cleaned_text)        # `代码`
+        
+        # 处理链接标记但保留文本
+        cleaned_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned_text)  # [文本](链接)
+        
+        # 只清理真正有害的特殊字符，不清理正常内容
+        
+        # 移除零宽字符和变体选择器
+        cleaned_text = re.sub(r'[\u200B-\u200F]', '', cleaned_text)  # 零宽字符和格式字符
+        cleaned_text = re.sub(r'[\uFEFF]', '', cleaned_text)  # 字节顺序标记
+        cleaned_text = re.sub(r'[\uFE0E\uFE0F]', '', cleaned_text)  # 变体选择器
+        cleaned_text = re.sub(r'\u180E', '', cleaned_text)  # 蒙古语空格
+        cleaned_text = re.sub(r'[\u2060-\u206F]', '', cleaned_text)  # 其他特殊空格和格式字符
+        
+        # 移除控制字符（但保留换行符和制表符）
+        cleaned_text = re.sub(r'[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]', '', cleaned_text)
+        
+        # 移除双向格式字符
+        cleaned_text = re.sub(r'[\u202A-\u202E]', '', cleaned_text)  # 双向格式字符
+        cleaned_text = re.sub(r'[\u2066-\u2069]', '', cleaned_text)  # 双向隔离字符
+        
+        # 移除一些明确的问题字符
+        cleaned_text = re.sub(r'[\u00AD]', '', cleaned_text)  # 软连字符
+        cleaned_text = re.sub(r'[\u034F]', '', cleaned_text)  # 组合石墨烯连接符
+        
+        # 标准化空白字符（轻微处理）
+        cleaned_text = re.sub(r'[\s]+', ' ', cleaned_text)  # 多个空格变为单个空格
+        cleaned_text = cleaned_text.strip()  # 移除首尾空格
+        
+        return cleaned_text
+
     def _apply_font_to_run(self, run, font_name: str = 'Microsoft YaHei'):
         """为run对象应用指定字体（强制设置）
         
@@ -559,7 +612,8 @@ class FormatConverter:
     
     def _process_heading(self, title: str, level: int):
         """处理标题（强制应用微软雅黑字体）"""
-        heading = self.document.add_heading(title, level)
+        cleaned_title = self._clean_text(title)  # 清理标题文本
+        heading = self.document.add_heading(cleaned_title, level)
         
         # 强制设置标题的字体为微软雅黑
         for paragraph in heading.runs if hasattr(heading, 'runs') else []:
@@ -570,7 +624,7 @@ class FormatConverter:
             for run in heading.runs:
                 self._apply_font_to_run(run, 'Microsoft YaHei')
         
-        self.logger.debug(f"添加标题: 级别{level}, 内容: {title}, 已应用微软雅黑字体")
+        self.logger.debug(f"添加标题: 级别{level}, 内容: {cleaned_title}, 已应用微软雅黑字体")
     
     def _process_paragraph_with_inline_formats(self, text: str):
         """处理包含内联格式的段落"""
@@ -615,17 +669,21 @@ class FormatConverter:
                 self.logger.debug(f"添加图片: {image_path}, 宽度: {optimal_width.inches:.1f}英寸")
             else:
                 # 添加图片占位符
-                run = paragraph.add_run(f"[图片: {alt_text}]")
+                cleaned_alt_text = self._clean_text(alt_text)  # 清理图片alt文本
+                run = paragraph.add_run(f"[图片: {cleaned_alt_text}]")
                 run.font.color.rgb = RGBColor(0x80, 0x80, 0x80)
+                self._apply_font_to_run(run)  # 应用微软雅黑字体
                 self.logger.warning(f"图片文件不存在: {image_path}")
         except Exception as e:
             self.logger.error(f"添加图片失败: {e}")
-            run = paragraph.add_run(f"[图片加载失败: {alt_text}]")
+            cleaned_alt_text = self._clean_text(alt_text)  # 清理图片alt文本
+            run = paragraph.add_run(f"[图片加载失败: {cleaned_alt_text}]")
             run.font.color.rgb = RGBColor(0xff, 0x00, 0x00)
+            self._apply_font_to_run(run)  # 应用微软雅黑字体
     
     def _add_link_to_paragraph(self, paragraph, match):
         """在段落中添加链接"""
-        link_text = match.group(1)
+        link_text = self._clean_text(match.group(1))  # 清理文本
         url = match.group(2)
         
         # 添加超链接
@@ -634,7 +692,7 @@ class FormatConverter:
     
     def _add_code_to_paragraph(self, paragraph, match):
         """在段落中添加内联代码"""
-        code_text = match.group(1)
+        code_text = self._clean_text(match.group(1))  # 清理文本
         run = paragraph.add_run(code_text)
         try:
             run.style = self.document.styles['Code']
@@ -646,7 +704,7 @@ class FormatConverter:
     
     def _add_bold_to_paragraph(self, paragraph, match):
         """在段落中添加粗体文本"""
-        bold_text = match.group(1)
+        bold_text = self._clean_text(match.group(1))  # 清理文本
         run = paragraph.add_run(bold_text)
         run.bold = True
         self._apply_font_to_run(run)  # 应用微软雅黑字体
@@ -654,7 +712,7 @@ class FormatConverter:
     
     def _add_italic_to_paragraph(self, paragraph, match):
         """在段落中添加斜体文本"""
-        italic_text = match.group(1)
+        italic_text = self._clean_text(match.group(1))  # 清理文本
         run = paragraph.add_run(italic_text)
         run.italic = True
         self._apply_font_to_run(run)  # 应用微软雅黑字体
@@ -669,7 +727,7 @@ class FormatConverter:
         for start, end in processed_ranges:
             # 添加范围前的文本
             if start > last_end:
-                text_before = original_text[last_end:start]
+                text_before = self._clean_text(original_text[last_end:start])  # 清理文本
                 if text_before.strip():
                     run = paragraph.add_run(text_before)
                     self._apply_font_to_run(run)  # 应用微软雅黑字体
@@ -677,7 +735,7 @@ class FormatConverter:
         
         # 添加最后的文本
         if last_end < len(original_text):
-            remaining_text = original_text[last_end:]
+            remaining_text = self._clean_text(original_text[last_end:])  # 清理文本
             if remaining_text.strip():
                 run = paragraph.add_run(remaining_text)
                 self._apply_font_to_run(run)  # 应用微软雅黑字体
@@ -692,7 +750,8 @@ class FormatConverter:
             self._apply_font_to_run(run)  # 应用微软雅黑字体
             
             # 在括号中添加URL
-            url_run = paragraph.add_run(f" ({url})")
+            cleaned_url = self._clean_text(url)  # 清理URL文本
+            url_run = paragraph.add_run(f" ({cleaned_url})")
             url_run.font.color.rgb = RGBColor(0x80, 0x80, 0x80)  # 灰色
             url_run.font.size = Pt(9)
             self._apply_font_to_run(url_run)  # 应用微软雅黑字体
@@ -701,29 +760,40 @@ class FormatConverter:
         except Exception as e:
             # 如果超链接创建失败，添加普通文本
             self.logger.warning(f"超链接创建失败: {e}, 使用普通文本代替")
-            run = paragraph.add_run(f"{text} ({url})")
+            cleaned_text = self._clean_text(text)  # 清理链接文本
+            cleaned_url = self._clean_text(url)   # 清理URL文本
+            run = paragraph.add_run(f"{cleaned_text} ({cleaned_url})")
             self._apply_font_to_run(run)  # 应用微软雅黑字体
             return run
     
     def _process_unordered_list(self, content: str, indent: int = 0):
         """处理无序列表"""
-        paragraph = self.document.add_paragraph(content, style='List Bullet')
+        cleaned_content = self._clean_text(content)  # 只使用基础清理
+        paragraph = self.document.add_paragraph(cleaned_content, style='List Bullet')
         # 根据缩进调整列表级别
         if indent > 0:
             paragraph.paragraph_format.left_indent = Inches(indent * 0.25)
-        self.logger.debug(f"添加无序列表项: {content}")
+        # 确保列表项也使用微软雅黑字体
+        for run in paragraph.runs:
+            self._apply_font_to_run(run)
+        self.logger.debug(f"添加无序列表项: {cleaned_content}")
     
     def _process_ordered_list(self, content: str, indent: int = 0):
         """处理有序列表"""
-        paragraph = self.document.add_paragraph(content, style='List Number')
+        cleaned_content = self._clean_text(content)  # 只使用基础清理
+        paragraph = self.document.add_paragraph(cleaned_content, style='List Number')
         # 根据缩进调整列表级别
         if indent > 0:
             paragraph.paragraph_format.left_indent = Inches(indent * 0.25)
-        self.logger.debug(f"添加有序列表项: {content}")
+        # 确保列表项也使用微软雅黑字体
+        for run in paragraph.runs:
+            self._apply_font_to_run(run)
+        self.logger.debug(f"添加有序列表项: {cleaned_content}")
     
     def _process_blockquote(self, content: str):
         """处理引用块"""
-        paragraph = self.document.add_paragraph(content)
+        cleaned_content = self._clean_text(content)  # 清理文本
+        paragraph = self.document.add_paragraph(cleaned_content)
         try:
             paragraph.style = self.document.styles['Quote']
         except KeyError:
@@ -732,18 +802,23 @@ class FormatConverter:
             for run in paragraph.runs:
                 run.font.italic = True
                 run.font.color.rgb = RGBColor(0x5a, 0x5a, 0x5a)
-        self.logger.debug(f"添加引用: {content}")
+                self._apply_font_to_run(run)  # 应用微软雅黑字体
+        self.logger.debug(f"添加引用: {cleaned_content}")
     
     def _process_horizontal_rule(self):
         """处理水平分割线"""
         paragraph = self.document.add_paragraph()
-        paragraph.add_run("_" * 50)
+        rule_text = "─" * 50  # 使用更标准的水平线字符
+        cleaned_rule = self._clean_text(rule_text)  # 清理分割线文本
+        run = paragraph.add_run(cleaned_rule)
         paragraph.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        self._apply_font_to_run(run)  # 应用微软雅黑字体
         self.logger.debug("添加水平分割线")
     
     def _process_code_block(self, code_content: str, language: str = ""):
         """处理代码块"""
-        paragraph = self.document.add_paragraph(code_content)
+        cleaned_code = self._clean_text(code_content)  # 清理代码内容
+        paragraph = self.document.add_paragraph(cleaned_code)
         try:
             paragraph.style = self.document.styles['CodeBlock']
         except KeyError:
@@ -755,11 +830,13 @@ class FormatConverter:
         
         if language:
             # 添加语言标识
-            lang_paragraph = self.document.add_paragraph(f"语言: {language}")
+            cleaned_language = self._clean_text(language)  # 清理语言标识
+            lang_paragraph = self.document.add_paragraph(f"语言: {cleaned_language}")
             lang_paragraph.paragraph_format.space_after = Pt(0)
             for run in lang_paragraph.runs:
                 run.font.size = Pt(8)
                 run.font.color.rgb = RGBColor(0x80, 0x80, 0x80)
+                self._apply_font_to_run(run)  # 应用微软雅黑字体
         
         self.logger.debug(f"添加代码块: 语言={language}, 行数={len(code_content.split())}")
     
@@ -782,7 +859,7 @@ class FormatConverter:
         self._populate_table_content(table, table_data)
         
         # 添加表格后的间距
-        self.document.add_paragraph("")
+        self._add_paragraph("")
         
         rows_count = len(table_data['rows'])
         cols_count = len(table_data['rows'][0]) if table_data['rows'] else 0
@@ -826,7 +903,9 @@ class FormatConverter:
                 continue
                 
             cell = table.rows[row_index].cells[j]
-            cell.text = cell_content
+            # 对表格内容进行温和清理，保留正常文字
+            cleaned_content = self._clean_text(cell_content)  # 只使用基础清理
+            cell.text = cleaned_content
             
             # 应用微软雅黑字体
             for paragraph in cell.paragraphs:
@@ -933,7 +1012,8 @@ class FormatConverter:
     
     def _add_table_title(self, title: str):
         """添加表格标题"""
-        title_paragraph = self.document.add_paragraph(title)
+        cleaned_title = self._clean_text(title)  # 清理标题文本
+        title_paragraph = self.document.add_paragraph(cleaned_title)
         try:
             title_paragraph.style = self.document.styles['TableTitle']
         except KeyError:
@@ -942,7 +1022,8 @@ class FormatConverter:
             for run in title_paragraph.runs:
                 run.bold = True
                 run.font.size = Pt(11)
-        self.logger.debug(f"添加表格标题: {title}")
+                self._apply_font_to_run(run)  # 应用微软雅黑字体
+        self.logger.debug(f"添加表格标题: {cleaned_title}")
     
     def _detect_table_title(self, text_before_table: str) -> str:
         """检测表格标题（从表格前的文本中）"""
@@ -969,6 +1050,7 @@ class FormatConverter:
             if image_path and image_path.exists():
                 # 成功渲染，插入图片
                 paragraph = self.document.add_paragraph()
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER  # 图片居中
                 run = paragraph.add_run()
                 
                 # 添加图片到文档
@@ -1120,18 +1202,23 @@ class FormatConverter:
         """
         # 添加图表标题
         paragraph = self.document.add_paragraph()
-        run = paragraph.add_run(f"[{chart_type.upper()}图表]")
+        title_text = f"[{chart_type.upper()}图表]"
+        cleaned_title = self._clean_text(title_text)  # 清理标题文本
+        run = paragraph.add_run(cleaned_title)
         run.bold = True
         run.font.color.rgb = RGBColor(0x00, 0x80, 0x00)
+        self._apply_font_to_run(run)  # 应用微软雅黑字体
         
         # 添加图表代码
-        code_paragraph = self.document.add_paragraph(chart_code)
+        cleaned_code = self._clean_text(chart_code)  # 清理代码文本
+        code_paragraph = self.document.add_paragraph(cleaned_code)
         try:
             code_paragraph.style = self.document.styles['CodeBlock']
         except KeyError:
             for run in code_paragraph.runs:
                 run.font.name = 'Consolas'
                 run.font.size = Pt(8)
+                self._apply_font_to_run(run)  # 应用微软雅黑字体
         
         self.logger.info(f"使用降级方案显示{chart_type}图表代码")
     
@@ -1190,7 +1277,12 @@ class FormatConverter:
     
     def _add_paragraph(self, text: str = "") -> Any:
         """添加段落的辅助方法"""
-        return self.document.add_paragraph(text)
+        cleaned_text = self._clean_text(text) if text else text
+        paragraph = self.document.add_paragraph(cleaned_text)
+        # 确保段落中的所有运行都使用正确的字体
+        for run in paragraph.runs:
+            self._apply_font_to_run(run)
+        return paragraph
     
     def save_document(self, file_path: str):
         """保存Word文档
