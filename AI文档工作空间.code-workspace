@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "."
+		},
+		{
+			"path": "../crane_fault_prediction_demo"
 		}
 	],
 	"settings": {
