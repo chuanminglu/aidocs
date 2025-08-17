@@ -1,16 +1,11 @@
-# AI能力提升培训三天课程脉络图
+# PlantUML图片质量测试文档
 
-## 课程概述
+本文档用于测试优化后的PlantUML渲染质量。
 
-**课程名称**：AI能力提升培训：RAG知识增强构建、Agent设计与实践，项目案例分享与实战
-
-**课程时长**：3天/24小时
-
-**培训目标**：提升AI应用开发能力以及Agent实现、模型优化部署等方面的工程化能力
-
-## 整体课程架构图
+## 测试图表1：简单时序图
 
 ```plantuml
+<<<<<<< HEAD
 @startuml AI培训三天课程脉络
 !theme plain
 skinparam backgroundColor #F8F9FA
@@ -82,10 +77,27 @@ rectangle "第三天" as day3 #E8F5E8 {
 info -down-> day1 : <color:purple><b>学习路径</b></color>
 day1 -right-> day2 : <color:green><b>进阶</b></color>
 day2 -right-> day3 : <color:orange><b>实战</b></color>
+=======
+@startuml
+title 用户登录时序图
+actor 用户
+participant "前端应用" as Frontend
+participant "后端API" as Backend  
+participant "数据库" as DB
 
+用户 -> Frontend: 输入用户名密码
+Frontend -> Backend: 发送登录请求
+Backend -> DB: 验证用户信息
+DB -> Backend: 返回验证结果
+Backend -> Frontend: 返回登录状态
+Frontend -> 用户: 显示登录结果
+>>>>>>> 2245ff522d05078c5ad72864a9d901ddf56a4ec2
+
+note right of Backend: 这里会进行\n密码加密验证\n和会话管理
 @enduml
 ```
 
+<<<<<<< HEAD
 ## 详细学习路径
 
 ### 第一天：RAG知识库增强构建
@@ -93,139 +105,121 @@ day2 -right-> day3 : <color:orange><b>实战</b></color>
 **学习主线**：理解RAG知识库构建任务 → 场景化需求分析 → RAG2.0技术实现 → 性能优化 → 问题剖析
 
 #### 🎯 核心模块流程图
+=======
+## 测试图表2：复杂活动图
+>>>>>>> 2245ff522d05078c5ad72864a9d901ddf56a4ec2
 
 ```plantuml
-@startuml 第一天RAG流程
-!theme plain
-skinparam backgroundColor #F8F9FA
-
-title <size:16><b>第一天：RAG知识库构建流程</b></size>
+@startuml
+title 订单处理流程图
 
 start
-:RAG技术概述;
-note right
-    • RAG vs 传统搜索
-    • 核心工作流程
-    • 任务清单
-end note
+:接收订单;
 
-:民航场景需求分析;
-note right
-    • 业务场景分析
-    • 数据源识别
-    • 分组工作坊
-end note
-
-:RAG 2.0技术解析;
-note right
-    • 混合检索策略
-    • 分块优化
-    • 查询重写机制
-end note
-
-:数据工程实战;
-note right
-    • 数据清洗实操
-    • 文档处理管道
-    • 向量化优化
-end note
-
-:知识入库;
-note right
-    • 向量数据库
-    • 入库架构设计
-    • 民航知识入库
-end note
-
-:检索系统构建;
-note right
-    • 多路召回
-    • 意图理解
-    • 检索API
-end note
-
-:性能调优;
-note right
-    • 关键指标监控
-    • 生成质量优化
-    • 失败案例分析
-end note
+if (库存充足?) then (是)
+  :锁定库存;
+  if (支付成功?) then (是)
+    :确认订单;
+    :生成发货单;
+    fork
+      :通知仓库发货;
+    fork again
+      :发送确认邮件;
+    fork again
+      :更新用户积分;
+    end fork
+    :订单完成;
+  else (否)
+    :释放库存;
+    :订单失败;
+  endif
+else (否)
+  :通知补货;
+  :订单挂起;
+endif
 
 stop
 
+note right: 整个流程需要\n确保数据一致性\n和用户体验
 @enduml
 ```
 
+<<<<<<< HEAD
 ### 第二天：Agent系统设计与实践
 
 **学习主线**：智能体概念理解 → Dify平台实操 → 工作流开发 → 复杂编排 → 工具扩展
 
 #### 🤖 智能体开发进阶图
+=======
+## 测试图表3：类图结构
+>>>>>>> 2245ff522d05078c5ad72864a9d901ddf56a4ec2
 
 ```plantuml
-@startuml 第二天Agent开发
-!theme plain
-skinparam backgroundColor #F8F9FA
+@startuml
+title 电商系统核心类图
 
-title <size:16><b>第二天：Agent系统开发进阶</b></size>
-
-package "理论基础" {
-    [Agent核心概念] as concept
-    [AIDA框架] as aida
-    [ReAct机制] as react
+class User {
+  +id: String
+  +username: String
+  +email: String
+  +password: String
+  --
+  +login(): Boolean
+  +logout(): void
+  +updateProfile(): void
 }
 
-package "平台实操" {
-    [Dify平台入门] as dify
-    [简单问答机器人] as chatbot
-    [工作流设计] as workflow
+class Product {
+  +id: String
+  +name: String
+  +price: BigDecimal
+  +stock: Integer
+  +category: Category
+  --
+  +updateStock(quantity: Integer): void
+  +getPrice(): BigDecimal
 }
 
-package "复杂应用" {
-    [智能工单系统] as ticket
-    [退款处理流程] as refund
-    [多工具协同] as tools
+class Order {
+  +id: String
+  +userId: String
+  +totalAmount: BigDecimal
+  +status: OrderStatus
+  +createTime: DateTime
+  --
+  +addItem(product: Product, quantity: Integer): void
+  +calculateTotal(): BigDecimal
+  +updateStatus(status: OrderStatus): void
 }
 
-package "能力扩展" {
-    [MCP协议] as mcp
-    [自定义工具] as custom
-    [服务集成] as integration
+class OrderItem {
+  +orderId: String
+  +productId: String
+  +quantity: Integer
+  +unitPrice: BigDecimal
+  --
+  +getSubtotal(): BigDecimal
 }
 
-concept --> aida
-aida --> react
-react --> dify
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
 
-dify --> chatbot
-chatbot --> workflow
-workflow --> ticket
+User ||--o{ Order : places
+Order ||--o{ OrderItem : contains
+Product ||--o{ OrderItem : referenced_by
+Product }o--|| Category : belongs_to
 
-ticket --> refund
-refund --> tools
-tools --> mcp
-
-mcp --> custom
-custom --> integration
-
-note bottom of concept
-    感知、推理、决策、行动
-    四大核心特征
-end note
-
-note bottom of workflow
-    节点类型、条件判断
-    循环处理、异常管控
-end note
-
-note bottom of mcp
-    协议原理、环境搭建
-    客户端服务端通信
-end note
-
+note top of User : 用户可以下多个订单\n支持会员等级管理
+note right of Order : 订单状态管理\n支持支付和物流追踪
 @enduml
 ```
 
+<<<<<<< HEAD
 ### 第三天：多智能体系统与企业应用
 
 **学习主线**：多智能体协作 → 企业级功能 → 监控运维 → 行业方案 → 综合实战
@@ -392,3 +386,6 @@ arch --> ops
 ---
 
 *本课程设计注重实战性和实用性，确保学员能够将所学知识直接应用到实际工作中。*
+=======
+测试完成后，请检查以上三个图表的清晰度和质量。
+>>>>>>> 2245ff522d05078c5ad72864a9d901ddf56a4ec2

@@ -1,0 +1,38 @@
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = [
+    "-ra",
+    "--strict-markers", 
+    "--strict-config",
+    "--cov=src/md2doc",
+    "--cov-report=term-missing",
+    "--cov-report=html:tests/coverage_html",
+    "--cov-report=xml:tests/coverage.xml",
+    "--cov-fail-under=80"
+]
+testpaths = ["tests"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "slow: Slow tests that take more time"
+]
+
+[tool.coverage.run]
+source = ["src/md2doc"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:"
+]

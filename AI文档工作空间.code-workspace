@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "../AI文档s"
+		},
+		{
+			"path": "."
+		},
+		{
+			"path": "../crane_fault_prediction_demo"
+		}
+	],
+	"settings": {
+		"powershell.cwd": "aidocs",
+		"liveServer.settings.multiRootWorkspaceName": "AI文档s"
+	}
+}
