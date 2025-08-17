@@ -1,3 +1,5 @@
+**正常、**
+
 # AI培训课程计划表
 
 ## 课程概览
@@ -10,7 +12,7 @@
 @startuml AI培训课程计划
 !theme plain
 skinparam backgroundColor #F8F9FA
-skinparam defaultFontSize 11
+skinparam defaultFontSize 20
 skinparam rectangle {
     BackgroundColor #E3F2FD
     BorderColor #1976D2
@@ -20,24 +22,21 @@ skinparam actor {
     BorderColor #388E3C
 }
 
-title <size:16><b>AI培训课程计划表</b></size>
-
 ' 第一天
 rectangle "第1天" as day1 #E3F2FD {
     rectangle "RAG 知识增强构建\n8小时 | 面授" as course1
     actor "俞朴勇" as instructor1
 }
-
 ' 第二天
 rectangle "第2天" as day2 #E1F5FE {
     rectangle "Agent 设计与实战\n项目案例分享与实战\n8小时 | 面授" as course2
-    actor "俞朴勇\n支彪" as instructor2
+    actor "俞朴勇\n艾彪" as instructor2
 }
 
 ' 第三天
 rectangle "第3天" as day3 #E0F2F1 {
     rectangle "Agent 设计与实战(进阶)\n项目案例分享与实战\n8小时 | 面授" as course3
-    actor "俞朴勇\n支彪" as instructor3
+    actor "俞朴勇\n艾彪" as instructor3
 }
 
 ' 第四天
@@ -86,13 +85,7 @@ location -up-> day2
 location -up-> day3
 location -up-> day4
 
-note top of day1
-    <b>课程特色</b>
-    ✓ 实战导向
-    ✓ 专家授课
-    ✓ 小班教学
-    ✓ 持续支持
-end note
+
 
 @enduml
 ```
@@ -100,30 +93,34 @@ end note
 ## 详细课程安排
 
 ### 第1天：RAG 知识增强构建
+
 - **时长**：8小时
 - **培训方式**：面授
-- **机构讲师**：俞朴勇
+- **机构讲师**：禹朴勇
 - **拟定培训时间**：拟于7-9月，具体时间协商而定
 - **培训地点**：民航凯亚指定地点
 - **备注**：约40人
 
 ### 第2天：Agent 设计与实战
+
 - **时长**：8小时
 - **培训方式**：面授
-- **机构讲师**：俞朴勇、支彪
+- **机构讲师**：禹朴勇、艾彪
 - **拟定培训时间**：拟于7-9月，具体时间协商而定
 - **培训地点**：民航凯亚指定地点
 - **备注**：约40人
 
 ### 第3天：Agent 设计与实战（进阶）
+
 - **时长**：8小时
 - **培训方式**：面授
-- **机构讲师**：俞朴勇、支彪
+- **机构讲师**：禹朴勇、艾彪
 - **拟定培训时间**：拟于7-9月，具体时间协商而定
 - **培训地点**：民航凯亚指定地点
 - **备注**：约40人
 
 ### 第4天：AI+研发的智能升级
+
 - **时长**：8小时
 - **培训方式**：面授
 - **机构讲师**：鹿传明
@@ -134,6 +131,7 @@ end note
 ## 后续技术支持服务
 
 ### 提供半年内咨询服务
+
 - **服务内容**：提供5次现场技术支持服务
 - **服务时长**：每次不少于4小时
 - **服务方式**：现场
