@@ -11,5 +11,26 @@
     "python.linting.flake8Enabled": false,
     "files.associations": {
         "*.py": "python"
+    },
+    
+    // Markdown转Word相关设置
+    "markdown.preview.breaks": true,
+    "markdown.preview.linkify": true,
+    "markdown.preview.typographer": true,
+    
+    // 任务自动检测
+    "task.autoDetect": "on",
+    
+    // Markdown文件优化
+    "[markdown]": {
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        },
+        "editor.minimap.enabled": false,
+        "editor.lineNumbers": "on",
+        "files.trimTrailingWhitespace": false
     }
 }

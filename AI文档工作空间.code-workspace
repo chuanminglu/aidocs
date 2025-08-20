@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../crane_fault_prediction_demo"
+		},
+		{
+			"path": "../crane-web-demo"
 		}
 	],
 	"settings": {
