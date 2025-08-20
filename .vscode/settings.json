@@ -21,6 +21,28 @@
     // 任务自动检测
     "task.autoDetect": "on",
     
+    // 文件系统监控优化
+    "files.watcherExclude": {
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/node_modules/*/**": true,
+        "**/__pycache__/**": true,
+        "**/aidocs-env/**": true,
+        "**/output/**": true,
+        "**/logs/**": true,
+        "**/.vscode-test/**": true
+    },
+    "search.exclude": {
+        "**/aidocs-env": true,
+        "**/__pycache__": true,
+        "**/output": true,
+        "**/logs": true
+    },
+    
+    // 资源管理器刷新设置
+    "explorer.autoReveal": true,
+    "files.autoSave": "onFocusChange",
+    
     // Markdown文件优化
     "[markdown]": {
         "editor.wordWrap": "on",

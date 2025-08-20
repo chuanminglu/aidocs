@@ -9,5 +9,15 @@
         "key": "ctrl+alt+d",
         "command": "workbench.action.tasks.runTask",
         "args": "MD转DOCX：选择文件转换"
+    },
+    {
+        "key": "ctrl+shift+delete",
+        "command": "workbench.action.tasks.runTask",
+        "args": "强制删除文件"
+    },
+    {
+        "key": "f5",
+        "command": "workbench.files.action.refreshFilesExplorer",
+        "when": "explorerViewletVisible && filesExplorerFocus"
     }
 ]
