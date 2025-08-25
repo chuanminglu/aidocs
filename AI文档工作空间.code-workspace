@@ -1,9 +1,6 @@
 {
 	"folders": [
 		{
-			"path": "../AI文档s"
-		},
-		{
 			"path": "."
 		},
 		{
@@ -11,6 +8,9 @@
 		},
 		{
 			"path": "../crane-web-demo"
+		},
+		{
+			"path": "../aiworkdocs"
 		}
 	],
 	"settings": {
