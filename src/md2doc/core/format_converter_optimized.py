@@ -205,12 +205,34 @@ class OptimizedFormatConverter:
         return cleaned_text
     
     def _clean_table_cell_text(self, text: str) -> str:
-        """清理表格单元格文本 - 温和清理"""
+        """清理表格单元格文本 - 温和清理，包含全面的Markdown语法清理"""
         if not text:
             return text
         
-        # 基础清理
         cleaned_text = text
+        
+        # 清理所有常见的Markdown语法标记 - 重要修复！
+        cleaned_text = re.sub(r'\*\*\*([^*]+)\*\*\*', r'\1', cleaned_text)  # ***粗斜体***
+        cleaned_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', cleaned_text)      # **粗体**
+        cleaned_text = re.sub(r'\*([^*\n]+)\*', r'\1', cleaned_text)         # *斜体*
+        cleaned_text = re.sub(r'___([^_]+)___', r'\1', cleaned_text)         # ___粗斜体___
+        cleaned_text = re.sub(r'__([^_]+)__', r'\1', cleaned_text)           # __粗体__
+        cleaned_text = re.sub(r'_([^_\n]+)_', r'\1', cleaned_text)           # _斜体_
+        cleaned_text = re.sub(r'`([^`]+)`', r'\1', cleaned_text)             # `代码`
+        cleaned_text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', cleaned_text) # [文本](链接)
+        cleaned_text = re.sub(r'#{1,6}\s+', '', cleaned_text)               # ### 标题标记
+        cleaned_text = re.sub(r'~~([^~]+)~~', r'\1', cleaned_text)          # ~~删除线~~
+        cleaned_text = re.sub(r'\+\+([^+]+)\+\+', r'\1', cleaned_text)      # ++插入++
+        cleaned_text = re.sub(r'==([^=]+)==', r'\1', cleaned_text)          # ==高亮==
+        
+        # 清理列表标记
+        cleaned_text = re.sub(r'^\s*[-*+]\s+', '', cleaned_text)            # 无序列表
+        cleaned_text = re.sub(r'^\s*\d+\.\s+', '', cleaned_text)            # 有序列表
+        
+        # 清理引用标记
+        cleaned_text = re.sub(r'^\s*>\s*', '', cleaned_text)                # > 引用
+        
+        # 基础清理
         cleaned_text = re.sub(r'[\u200B-\u200F]', '', cleaned_text)
         cleaned_text = re.sub(r'[\uFEFF]', '', cleaned_text)
         
