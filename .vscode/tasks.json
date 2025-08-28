@@ -1,0 +1,124 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "MD转DOCX：当前文件",
+			"type": "shell",
+			"command": "${workspaceFolder}/aidocs-env/Scripts/python.exe",
+			"args": [
+				"${workspaceFolder}/md2docx_optimized.py",
+				"${file}",
+				"-o",
+				"${fileDirname}/${fileBasenameNoExtension}.docx"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"detail": "将当前打开的Markdown文件转换为Word文档，输出到源文件相同目录",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "MD转DOCX：选择文件转换",
+			"type": "shell",
+			"command": "${workspaceFolder}/aidocs-env/Scripts/python.exe",
+			"args": [
+				"${workspaceFolder}/md2docx_optimized.py",
+				"${input:markdownFile}"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new",
+				"showReuseMessage": true,
+				"clear": false
+			},
+			"detail": "选择Markdown文件并转换为Word文档",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "强制删除文件",
+			"type": "shell",
+			"command": "Remove-Item",
+			"args": [
+				"-Force",
+				"-Recurse",
+				"${input:fileToDelete}"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "强制删除指定文件（解决VS Code删除问题）",
+			"problemMatcher": []
+		},
+		{
+			"label": "刷新工作空间",
+			"type": "shell",
+			"command": "echo",
+			"args": [
+				"'刷新完成 - 请手动刷新资源管理器（F5）'"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "刷新工作空间文件状态",
+			"problemMatcher": []
+		},
+		{
+			"label": "VS Code工作空间清理",
+			"type": "shell",
+			"command": "pwsh.exe",
+			"args": [
+				"-ExecutionPolicy", "Bypass",
+				"-File", "${workspaceFolder}/scripts/vscode_cleanup.ps1"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "清理VS Code缓存和临时文件，解决文件删除问题",
+			"problemMatcher": []
+		}
+	],
+	"inputs": [
+		{
+			"id": "markdownFile",
+			"description": "请输入Markdown文件的完整路径",
+			"type": "promptString",
+			"default": "${workspaceFolder}/"
+		},
+		{
+			"id": "fileToDelete",
+			"description": "请输入要删除的文件路径",
+			"type": "promptString",
+			"default": "${workspaceFolder}/"
+		}
+	]
+}
