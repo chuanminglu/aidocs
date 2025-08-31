@@ -140,3 +140,5 @@ data/recent_files.json
 *.old
 test_*
 demo_*
+.vscode/tasks.json
+
