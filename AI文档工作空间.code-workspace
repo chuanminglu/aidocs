@@ -11,6 +11,15 @@
 		},
 		{
 			"path": "../AI文档s"
+		},
+		{
+			"path": "../coursesdemo"
+		},
+		{
+			"path": "../courses-starter"
+		},
+		{
+			"path": "../courses-teacher"
 		}
 	],
 	"settings": {
