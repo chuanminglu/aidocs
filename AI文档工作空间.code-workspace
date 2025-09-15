@@ -24,6 +24,7 @@
 	],
 	"settings": {
 		"powershell.cwd": "aidocs",
-		"liveServer.settings.multiRootWorkspaceName": "AI文档s"
+		"liveServer.settings.multiRootWorkspaceName": "AI文档s",
+		"java.compile.nullAnalysis.mode": "disabled"
 	}
 }

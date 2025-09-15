@@ -983,39 +983,56 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "错误", f"Word转Markdown失败: {str(e)}")
     
     def markdown_to_word(self):
-        """Markdown转Word"""
+        """Markdown转Word（使用优化转换器）"""
         try:
             content = self.get_current_document_content()
             if not content.strip():
                 QMessageBox.information(self, "提示", "请先输入Markdown内容")
                 return
             
-            # 使用Word解析器进行转换
-            import tempfile
-            import os
-            
-            with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_file:
-                tmp_path = tmp_file.name
-            
+            # 使用OptimizedFormatConverter进行转换（与md2docx_optimized.py保持一致）
             try:
-                self.word_parser.markdown_to_word(content, tmp_path)
-                file_size = os.path.getsize(tmp_path)
+                from src.md2doc.core.format_converter_optimized import OptimizedFormatConverter
+                
+                # 选择保存位置
+                file_path, _ = QFileDialog.getSaveFileName(
+                    self, 
+                    "保存Word文档", 
+                    "转换文档.docx",
+                    "Word文档 (*.docx)"
+                )
+                
+                if not file_path:
+                    return
+                
+                # 创建优化转换器并转换
+                converter = OptimizedFormatConverter()
+                converter.convert_markdown_to_word(content)
+                converter.save_document(file_path)
+                
+                # 检查文件大小
+                import os
+                file_size = os.path.getsize(file_path)
                 
                 QMessageBox.information(self, "转换成功", 
                                        f"🎉 Markdown转Word成功！\n\n"
-                                       f"• 文件大小: {file_size} 字节\n"
-                                       f"• 临时文件: {tmp_path}\n"
+                                       f"• 文件位置: {file_path}\n"
+                                       f"• 文件大小: {file_size:,} 字节 ({file_size/1024:.1f}KB)\n"
+                                       f"• 转换引擎: OptimizedFormatConverter\n"
                                        f"• 状态: 转换完成\n\n"
-                                       f"Word文档已生成，功能验证通过！")
+                                       f"✅ 优化特性:\n"
+                                       f"  ✓ 代码块换行完美保留\n"
+                                       f"  ✓ 字体显示为微软雅黑\n"
+                                       f"  ✓ 表格格式美观规整")
                 
-                # 清理临时文件
-                try:
-                    os.unlink(tmp_path)
-                except OSError:
-                    pass
+            except ImportError as e:
+                QMessageBox.critical(self, "错误", 
+                                   f"无法导入优化转换器: {str(e)}\n\n"
+                                   f"请确保md2doc模块完整安装")
+                return
                     
             except Exception as e:
-                QMessageBox.critical(self, "错误", f"转换失败: {str(e)}")
+                QMessageBox.critical(self, "错误", f"转换过程失败: {str(e)}")
                 
         except Exception as e:
             QMessageBox.critical(self, "错误", f"Markdown转Word失败: {str(e)}")
