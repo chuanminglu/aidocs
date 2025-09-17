@@ -4,9 +4,11 @@
 		{
 			"label": "MD转DOCX：当前文件",
 			"type": "shell",
-			"command": "${workspaceFolder}/venv/Scripts/python.exe",
+			"command": "poetry",
 			"args": [
-				"${workspaceFolder}/md2docx_optimized.py",
+				"run",
+				"python",
+				"md2docx_optimized.py",
 				"${file}",
 				"-o",
 				"${fileDirname}/${fileBasenameNoExtension}.docx"
@@ -32,9 +34,11 @@
 		{
 			"label": "MD转DOCX：选择文件转换",
 			"type": "shell",
-			"command": "${workspaceFolder}/venv/Scripts/python.exe",
+			"command": "poetry",
 			"args": [
-				"${workspaceFolder}/md2docx_optimized.py",
+				"run",
+				"python",
+				"md2docx_optimized.py",
 				"${input:markdownFile}"
 			],
 			"group": "build",
@@ -53,7 +57,7 @@
 			}
 		},
 		{
-			"label": "强制删除文件",
+			"label": "删除文件 (Windows)",
 			"type": "shell",
 			"command": "Remove-Item",
 			"args": [
@@ -68,15 +72,48 @@
 				"focus": false,
 				"panel": "new"
 			},
-			"detail": "强制删除指定文件（解决VS Code删除问题）",
-			"problemMatcher": []
+			"detail": "强制删除指定文件（Windows PowerShell）",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"windows": {
+				"command": "Remove-Item"
+			}
+		},
+		{
+			"label": "删除文件 (Unix/Linux/macOS)",
+			"type": "shell",
+			"command": "rm",
+			"args": [
+				"-rf",
+				"${input:fileToDelete}"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "强制删除指定文件（Unix/Linux/macOS）",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"linux": {
+				"command": "rm"
+			},
+			"osx": {
+				"command": "rm"
+			}
 		},
 		{
 			"label": "刷新工作空间",
 			"type": "shell",
 			"command": "echo",
 			"args": [
-				"'刷新完成 - 请手动刷新资源管理器（F5）'"
+				"刷新完成 - 请手动刷新资源管理器（F5）"
 			],
 			"group": "build",
 			"presentation": {
@@ -86,15 +123,20 @@
 				"panel": "new"
 			},
 			"detail": "刷新工作空间文件状态",
-			"problemMatcher": []
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
 		},
 		{
-			"label": "VS Code工作空间清理",
+			"label": "工作空间清理",
 			"type": "shell",
-			"command": "pwsh.exe",
+			"command": "poetry",
 			"args": [
-				"-ExecutionPolicy", "Bypass",
-				"-File", "${workspaceFolder}/scripts/vscode_cleanup.ps1"
+				"run",
+				"python",
+				"-c",
+				"import os; [os.remove(f) for f in ['*.tmp', '*.temp'] if os.path.exists(f)]"
 			],
 			"group": "build",
 			"presentation": {
@@ -103,8 +145,139 @@
 				"focus": false,
 				"panel": "new"
 			},
-			"detail": "清理VS Code缓存和临时文件，解决文件删除问题",
-			"problemMatcher": []
+			"detail": "清理临时文件（跨平台兼容）",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 安装依赖",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"install"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "安装Poetry项目依赖",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 添加依赖",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"add",
+				"${input:packageName}"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "添加新的Python包依赖",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 查看依赖",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"show"
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "显示已安装的依赖包列表",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 运行测试",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"run",
+				"pytest",
+				"tests/",
+				"-v"
+			],
+			"group": "test",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "运行项目测试",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 代码格式化",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"run",
+				"black",
+				"."
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "使用Black格式化代码",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Poetry: 代码检查",
+			"type": "shell",
+			"command": "poetry",
+			"args": [
+				"run",
+				"flake8",
+				"."
+			],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "new"
+			},
+			"detail": "使用Flake8检查代码质量",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
 		}
 	],
 	"inputs": [
@@ -119,6 +292,12 @@
 			"description": "请输入要删除的文件路径",
 			"type": "promptString",
 			"default": "${workspaceFolder}/"
+		},
+		{
+			"id": "packageName",
+			"description": "请输入要添加的Python包名称",
+			"type": "promptString",
+			"default": ""
 		}
 	]
 }
