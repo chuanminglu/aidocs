@@ -3,17 +3,21 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.12+-blue.svg)
+![Poetry](https://img.shields.io/badge/Poetry-管理依赖-blue.svg)
 ![PyQt6](https://img.shields.io/badge/PyQt6-6.0+-green.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-red.svg)
+![跨平台](https://img.shields.io/badge/跨平台-Windows%20%7C%20macOS%20%7C%20Linux-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-*一个现代化的AI驱动文档管理系统*
+*一个现代化的AI驱动文档管理系统 - 支持跨平台开发*
 
 </div>
 
 ## ✨ 项目简介
 
 AI文档管理系统是一个**功能完整**的智能文档管理平台，专为个人和团队的文档管理需求而设计。系统采用现代化的桌面应用架构，提供直观的用户界面和强大的功能支持。
+
+**🆕 现已支持跨平台开发！** 无论您使用Windows、macOS还是Linux，都能享受一致的开发体验。
 
 ### 🎯 核心特性
 
@@ -25,8 +29,81 @@ AI文档管理系统是一个**功能完整**的智能文档管理平台，专�
 - **📋 模板管理**: 内置丰富的文档模板
 - **🔄 实时同步**: 支持实时编辑和保存
 - **🌐 API支持**: RESTful API接口支持
+- **🚀 跨平台兼容**: Windows/macOS/Linux统一开发环境
 
-## 🛠️ 技术栈
+## � 快速开始
+
+### 方法1：自动化设置（推荐）
+
+```bash
+# 克隆项目
+git clone <repository-url>
+cd aidocs
+
+# 运行自动化设置脚本
+.\setup-dev-env.ps1  # Windows
+pwsh setup-dev-env.ps1  # macOS/Linux
+```
+
+### 方法2：手动设置
+
+1. **安装Poetry**
+   ```bash
+   # Windows
+   (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+   
+   # macOS
+   brew install poetry
+   
+   # Linux
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+2. **安装依赖**
+   ```bash
+   poetry install
+   ```
+
+3. **VS Code配置**
+   ```bash
+   code .  # 打开项目
+   # Ctrl+Shift+P → Tasks: Run Task → Poetry: 查看依赖
+   ```
+
+## 💻 VS Code 开发环境
+
+本项目已配置完整的VS Code开发环境，支持跨平台使用。
+
+### 🎯 可用任务
+
+在VS Code中按 `Ctrl+Shift+P` → `Tasks: Run Task` 可以使用以下任务：
+
+#### 📄 文档转换
+- **MD转DOCX：当前文件** - 转换当前Markdown文件为Word文档
+- **MD转DOCX：选择文件转换** - 选择文件进行转换
+
+#### 🛠️ Poetry管理
+- **Poetry: 安装依赖** - 安装项目依赖
+- **Poetry: 添加依赖** - 添加新的Python包
+- **Poetry: 查看依赖** - 显示已安装包列表
+- **Poetry: 运行测试** - 执行项目测试
+- **Poetry: 代码格式化** - 使用Black格式化代码
+- **Poetry: 代码检查** - 使用Flake8检查代码
+
+#### 🧹 系统维护
+- **删除文件** - 跨平台文件删除（Windows/Unix）
+- **刷新工作空间** - 刷新文件状态
+- **工作空间清理** - 清理临时文件
+
+### 📚 详细说明
+
+更多配置信息请参考：[跨平台tasks配置说明](docs/跨平台tasks配置说明.md)
+
+## �🛠️ 技术栈
+
+### 依赖管理
+- **Poetry**: 现代Python依赖管理和构建工具
+- **跨平台支持**: Windows、macOS、Linux
 
 ### 前端 (桌面客户端)
 - **PyQt6**: 现代化跨平台桌面应用框架
