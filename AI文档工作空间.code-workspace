@@ -20,6 +20,12 @@
 		},
 		{
 			"path": "../courses-teacher"
+		},
+		{
+			"path": "../aitoolsuite"
+		},
+		{
+			"path": "../DiagramAI"
 		}
 	],
 	"settings": {
