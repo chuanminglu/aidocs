@@ -1,0 +1,196 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MD转DOCX：使用绿色版EXE - 当前文件",
+      "type": "shell",
+      "command": "${workspaceFolder}/dist/md2docx.exe",
+      "args": [
+        "${file}",
+        "-o",
+        "${fileDirname}/${fileBasenameNoExtension}.docx"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "使用绿色版 md2docx.exe 转换当前打开的 Markdown 文件（无需 Python 环境）"
+    },
+    {
+      "label": "MD转DOCX：使用绿色版EXE - 指定输出目录",
+      "type": "shell",
+      "command": "${workspaceFolder}/dist/md2docx.exe",
+      "args": [
+        "${file}",
+        "-o",
+        "${workspaceFolder}/output/${fileBasenameNoExtension}.docx"
+      ],
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "转换 Markdown 到 output 目录（绿色版，无需 Python）"
+    },
+    {
+      "label": "MD转DOCX：批量转换当前目录",
+      "type": "shell",
+      "windows": {
+        "command": "Get-ChildItem",
+        "args": [
+          "-Path",
+          "${fileDirname}",
+          "-Filter",
+          "*.md",
+          "|",
+          "ForEach-Object",
+          "{",
+          "&",
+          "'${workspaceFolder}/dist/md2docx.exe'",
+          "$_.FullName",
+          "}"
+        ]
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "批量转换当前目录下所有 Markdown 文件（绿色版）"
+    },
+    {
+      "label": "MD转DOCX：批量转换整个工作区",
+      "type": "shell",
+      "windows": {
+        "command": "Get-ChildItem",
+        "args": [
+          "-Path",
+          "${workspaceFolder}",
+          "-Filter",
+          "*.md",
+          "-Recurse",
+          "|",
+          "ForEach-Object",
+          "{",
+          "Write-Host",
+          "'转换:' $_.Name;",
+          "&",
+          "'${workspaceFolder}/dist/md2docx.exe'",
+          "$_.FullName",
+          "}"
+        ]
+      },
+      "group": "build",
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": false
+      },
+      "problemMatcher": [],
+      "detail": "递归转换工作区所有 Markdown 文件（绿色版）"
+    },
+    {
+      "label": "打开 md2docx.exe 所在目录",
+      "type": "shell",
+      "command": "explorer",
+      "args": [
+        "${workspaceFolder}\\dist"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "silent",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "detail": "在资源管理器中打开 dist 目录"
+    },
+    {
+      "label": "查看 md2docx.exe 帮助信息",
+      "type": "shell",
+      "command": "${workspaceFolder}/dist/md2docx.exe",
+      "args": [
+        "--help"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": true,
+        "panel": "shared",
+        "showReuseMessage": false,
+        "clear": true
+      },
+      "problemMatcher": [],
+      "detail": "显示 md2docx.exe 的使用帮助"
+    },
+    {
+      "label": "复制 md2docx.exe 到桌面",
+      "type": "shell",
+      "command": "Copy-Item",
+      "args": [
+        "-Path",
+        "${workspaceFolder}\\dist\\md2docx.exe",
+        "-Destination",
+        "$env:USERPROFILE\\Desktop\\md2docx.exe",
+        "-Force"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "detail": "将 md2docx.exe 复制到桌面，方便拖放使用"
+    },
+    {
+      "label": "创建 md2docx 批处理脚本",
+      "type": "shell",
+      "command": "echo",
+      "args": [
+        "'@echo off",
+        "echo 批量转换 Markdown 文件",
+        "echo.",
+        "for %%f in (*.md) do (",
+        "  echo 转换: %%f",
+        "  \"${workspaceFolder}\\dist\\md2docx.exe\" \"%%f\"",
+        ")",
+        "echo.",
+        "echo 转换完成！",
+        "pause'",
+        ">",
+        "${workspaceFolder}\\dist\\batch_convert.bat"
+      ],
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": [],
+      "detail": "在 dist 目录创建批量转换脚本"
+    }
+  ]
+}
